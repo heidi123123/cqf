@@ -41,3 +41,5 @@ dmypy.json
 
 # Ignore Cython debug symbols
 cython_debug/
+/github-malyginvladimir/
+/github-eightsmile/
