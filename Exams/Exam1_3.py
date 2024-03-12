@@ -70,12 +70,12 @@ opt_values = []
 # Calculate vector containing all option values for a given standard deviation
 for vol in vols:
     sigma = np.sqrt(vol)
-    opt_values.append(binomial_option(S, E, r, sigma, T, 1, 2))
+    opt_values.append(binomial_option(S, E, r, sigma, T, 1, 2)[0, 0])
 
 # plot
 plt.figure(figsize=(10, 8))
-plt.scatter(x=vols, y=opt_values, marker="o", s=15, zorder=5)
+plt.scatter(x=vols, y=opt_values, marker="o", s=15)
 plt.xlabel("Volatility")
 plt.ylabel("Option Value")
-plt.legend()
+plt.title("European call option value with T=1, S=K=100")
 plt.show()
