@@ -13,7 +13,8 @@ T = 1
 
 # From Python Labs with Kannan, slightly adapted
 # Create a user defined function
-def binomial_option(spot: float, strike: float, rate: float, sigma: float, time: float, steps: int, output: int=0) -> np.ndarray:
+def binomial_option(spot: float, strike: float, rate: float, sigma: float, time: float, steps: int,
+                    output: int = 0) -> np.ndarray:
     """
     binomial_option(spot, strike, rate, sigma, time, steps, output=0)
     Function for building binomial option tree for european call option payoff
@@ -36,29 +37,29 @@ def binomial_option(spot: float, strike: float, rate: float, sigma: float, time:
     dt = time / steps
     u = 1 + sigma * np.sqrt(dt)
     v = 1 - sigma * np.sqrt(dt)
-    p = 0.5 + rate * np.sqrt(dt) / (2*sigma)
+    p = 0.5 + rate * np.sqrt(dt) / (2 * sigma)
     df = 1 / (1 + rate * dt)
 
     # initialize arrays
-    px = np.zeros((steps+1, steps+1))  # creates quadratic matrix of dimension steps+1 x steps+1 for the price
-    cp = np.zeros((steps+1, steps+1))  # for call payoff
-    V = np.zeros((steps+1, steps+1))  # for option price
-    d = np.zeros((steps+1, steps+1))  # for delta
+    px = np.zeros((steps + 1, steps + 1))  # creates quadratic matrix of dimension steps+1 x steps+1 for the price
+    cp = np.zeros((steps + 1, steps + 1))  # for call payoff
+    V = np.zeros((steps + 1, steps + 1))  # for option price
+    d = np.zeros((steps + 1, steps + 1))  # for delta
     # binomial loop
     # forward loop
-    for j in range(steps+1):
-        for i in range(j+1):
-            px[i, j] = spot * np.power(v, i) * np.power(u ,j-i)  # create asset path here
+    for j in range(steps + 1):
+        for i in range(j + 1):
+            px[i, j] = spot * np.power(v, i) * np.power(u, j - i)  # create asset path here
             cp[i, j] = np.maximum(px[i, j] - strike, 0)
     # reverse loop
-    for j in range(steps+1, 0, -1):
+    for j in range(steps + 1, 0, -1):
         for i in range(j):
             if j == steps + 1:  # the end of the tree (i.e. if reversed loop, technically the beginning)
-                V[i, j-1] = cp[i, j-1]
-                d[i, j-1] = 0  # delta
+                V[i, j - 1] = cp[i, j - 1]
+                d[i, j - 1] = 0  # delta
             else:
-                V[i, j-1] = df * (p*V[i, j] + (1-p)*V[i + 1,j])
-                d[i, j-1] = (V[i, j]-V[i + 1, j])/(px[i, j]-px[i+1, j])
+                V[i, j - 1] = df * (p * V[i, j] + (1 - p) * V[i + 1, j])
+                d[i, j - 1] = (V[i, j] - V[i + 1, j]) / (px[i, j] - px[i + 1, j])
 
     results = np.around(px, 2), np.around(cp, 2), np.around(V, 2), np.around(d, 4)
     return results[output]
