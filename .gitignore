@@ -1,3 +1,6 @@
+# Ignore project file
+.idea
+
 # Ignore Jupyter Notebook checkpoints
 *-checkpoint.ipynb
 
