@@ -8,8 +8,8 @@ r = 0.05
 E = 100
 T = 1
 
-# ******************** question 3.1 ********************
 
+# ******************** question 3.2 ********************
 
 # From Python Labs with Kannan, slightly adapted
 # Create a user defined function
@@ -35,12 +35,13 @@ def binomial_option(spot: float, strike: float, rate: float, sigma: float, time:
 
     # params
     dt = time / steps
-    u = 1 + sigma * np.sqrt(dt)
-    v = 1 - sigma * np.sqrt(dt)
+    u = np.exp(sigma * np.sqrt(dt))
+    v = np.exp(-sigma * np.sqrt(dt))
     p = 0.5 + rate * np.sqrt(dt) / (2 * sigma)
-    df = 1 / (1 + rate * dt)
+    df = np.exp(-r * dt)
 
     # initialize arrays
+
     px = np.zeros((steps + 1, steps + 1))  # creates quadratic matrix of dimension steps+1 x steps+1 for the price
     cp = np.zeros((steps + 1, steps + 1))  # for call payoff
     V = np.zeros((steps + 1, steps + 1))  # for option price
@@ -68,15 +69,34 @@ def binomial_option(spot: float, strike: float, rate: float, sigma: float, time:
 # Option value is given by argument 2 as described in docstring
 vols = np.linspace(0.05, 0.80, 100)
 opt_values = []
+time_steps = 10
 # Calculate vector containing all option values for a given standard deviation
 for vol in vols:
     sigma = np.sqrt(vol)
-    opt_values.append(binomial_option(S, E, r, sigma, T, 1, 2)[0, 0])
+    opt_values.append(binomial_option(S, E, r, sigma, T, time_steps, 2)[0, 0])
 
 # plot
 plt.figure(figsize=(10, 8))
-plt.scatter(x=vols, y=opt_values, marker="o", s=15)
+plt.scatter(x=vols, y=opt_values, marker="o", s=10)
+plt.plot(vols, opt_values)  # line to connect the scatter plot
 plt.xlabel("Volatility")
 plt.ylabel("Option Value")
-plt.title("European call option value with T=1, S=K=100")
+plt.title(f"European call option value\nS={S}, K={E}, T={T}, multi-step binomial model with #TimeSteps = {time_steps}")
+plt.show()
+
+
+# ******************** question 3.3 ********************
+
+sigma = 0.2
+opt_values = []
+
+for time_steps in range(4, 50+1):
+    opt_values.append(binomial_option(S, E, r, sigma, T, time_steps, 2)[0, 0])
+
+# plot
+plt.figure(figsize=(10, 8))
+plt.plot(range(4, 50+1), opt_values)
+plt.xlabel("#TimeSteps")
+plt.ylabel("Option Value")
+plt.title(f"European call option value\nS={S}, K={E}, sigma={sigma}, multi-step binomial model with #TimeSteps = {time_steps}")
 plt.show()
