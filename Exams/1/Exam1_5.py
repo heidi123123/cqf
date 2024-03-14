@@ -39,7 +39,9 @@ print(f"The {time_period}D-VaR at confidence level {confidence_level} for the gi
 
 var_breaches = sp500_df['ND_LogReturn'] < var_99_10d
 print(f"Number of VaR breaches: {var_breaches.sum()}")
-print(f"Percentage of VaR breaches: {var_breaches.sum() / var_breaches.count() * 100}%")
+percentage = var_breaches.sum() / sp500_df['ND_LogReturn'].count()
+# do not divide by var_breaches.count() as this has 10 elements more than one could even calculate 10D-VaR for
+print(f"Percentage of VaR breaches: {round(percentage * 100, 3)}%")
 
 # ******************** question 5b ********************
 
@@ -49,10 +51,10 @@ sp500_df['Counter'] = range(sp500_df['SP500'].count())
 sp500_var_breaches_df = sp500_df[var_breaches]
 
 
-def count_consecutive(llist):
+def count_consecutive(list_with_numbers):
     count = 0
-    for i in range(len(llist) - 1):
-        if llist[i] + 1 == llist[i + 1]:
+    for i in range(len(list_with_numbers) - 1):
+        if list_with_numbers[i] + 1 == list_with_numbers[i + 1]:
             count += 1
     return count
 
@@ -60,3 +62,27 @@ def count_consecutive(llist):
 number_of_consecutive_var_breaches = count_consecutive(sp500_var_breaches_df['Counter'].to_list())
 
 print(f"Number of consecutive VaR breaches: {number_of_consecutive_var_breaches}")
+
+# ******************** question 5c ********************
+
+fig, ax = plt.subplots()
+
+# Plot the SP500 prices
+ax.plot(sp500_df.index, sp500_df['SP500'], label='SP500', zorder=5)
+
+# Highlight VaR breaches
+ax.scatter(sp500_df.index[var_breaches], sp500_df['SP500'][var_breaches == True],
+           color='red', marker='x', label='99%-10D-VaR Breaches', zorder=10)
+
+ax.set_xlabel('Date')
+ax.set_ylabel('SP500 Closing Price')
+ax.set_title('SP500 Closing Price with 99%-10D-VaR Breaches')
+ax.legend()
+plt.show()
+
+# Now use the time-scaling and observation of 21 daily (not-log-)returns to calculate another version of VaR
+sp500_df['21D_Sigma'] = sp500_df['1D_Return'].rolling(window=21).std()
+sp500_df['21D_Mean'] = sp500_df['1D_Return'].rolling(window=21).mean()
+var_timescale21 = sp500_df['21D_Mean'] / 21 * time_period - sp500_df['21D_Sigma'] * norm.ppf(confidence_level)
+var_breaches_timescale21 = sp500_df['1D_Return'] < var_timescale21
+print(f"Number of VaR breaches using time-scaling + 21 daily returns: {var_breaches_timescale21.sum()}")
