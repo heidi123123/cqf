@@ -78,7 +78,7 @@ def calculate_efficient_frontier(rho, covariance_matrix, target_returns, mu):
 
 
 # sample size
-N = 700
+N = 1000
 number_of_assets = 4
 
 # calculate necessary plot arguments
