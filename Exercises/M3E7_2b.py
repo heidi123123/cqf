@@ -15,7 +15,7 @@ def gauss_seidel(a, x, b, w, num_iterations, print_iterations=False, tol=1e-5):
         x_new = np.copy(x)  # Copy of x to check convergence by comparing x_new to the last iteration's x
         for j in range(n):
             # Calculate sum of a[j][i] * x_new[i] for all i != j
-            temp_sum = np.dot(a[j, :], x_new) - a[j, j] * x_new[j]
+            temp_sum = a[j, :] @ x_new - a[j, j] * x_new[j]
 
             # Update x_new[j] with relaxation
             x_new[j] = (1 - w) * x_new[j] + (w / a[j, j]) * (b[j] - temp_sum)
