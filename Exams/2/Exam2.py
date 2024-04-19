@@ -91,8 +91,50 @@ def summarize_option_prices(option_prices, option_names):
     plt.show()
 
 
+def plot_stock_simulations(S):
+    """Plot the first 1000 stock price simulations along with the average, minimum, and maximum."""
+    plt.figure(figsize=(10, 6))
+    for i in range(min(1000, S.shape[0])):  # plot the first 1000 paths or less
+        plt.plot(S[i, :], color='gray', linewidth=0.5, linestyle='dashed')
+
+    # Plot significant functions
+    avg_S = np.mean(S, axis=0)
+    min_S = np.min(S, axis=0)
+    max_S = np.max(S, axis=0)
+    plt.plot(avg_S, label='Average Stock Price')
+    plt.plot(min_S, label='Minimum Stock Price')
+    plt.plot(max_S, label='Maximum Stock Price')
+
+    plt.xlabel('Time Steps')
+    plt.ylabel('Stock Price')
+    plt.title('Stock Price Simulations and Significant Functions')
+    plt.legend()
+    plt.show()
+
+
+def plot_option_prices(S, K, r, t):
+    """Plot the prices of different options."""
+    asian_call, asian_put = asian_option(S, K, r, t)
+    lookback_fixed_call, lookback_fixed_put = lookback_option(S, K, r, t, fixed_strike=1)
+    lookback_float_call, lookback_float_put = lookback_option(S, r, t, t, fixed_strike=0)
+
+    plt.figure(figsize=(10, 6))
+    labels = ['Asian Call', 'Asian Put',
+              'Lookback Fixed\nStrike Call', 'Lookback Fixed\nStrike Put',
+              'Lookback Floating\nStrike Call', 'Lookback Floating\nStrike Put']
+    prices = [asian_call, asian_put, lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put]
+    plt.bar(labels, prices)
+    plt.ylabel('Option Price')
+    plt.title(f'Option Price\nS0={S0}, K={K}, t={t}, sigma={sigma}, r={r}')
+    plt.xticks(rotation=45)  # Rotate x-axis labels
+    plt.tight_layout()  # Adjust layout to prevent labels from being cut off
+    plt.show()
+
+
 def main():
     S = simulate_stock_price(S0, r, sigma, t, dt, number_of_mc_paths)
+    plot_stock_simulations(S)
+    plot_option_prices(S, K, r, t)
 
 
 if __name__ == "__main__":
