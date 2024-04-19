@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
 S0 = 100
 K = 100
 t = 1
@@ -13,24 +14,13 @@ number_of_mc_paths = 50000
 
 def simulate_stock_price(S0, r, sigma, t, dt, number_of_mc_paths=10000):
     """Simulate stock price using Euler-Maruyama method."""
-    N = round(t / dt)  # number of time steps
+    N = int(t / dt)  # number of time steps
     S = np.zeros((number_of_mc_paths, N))
     S[:, 0] = S0
     for i in range(1, N):
         dW = np.random.standard_normal(number_of_mc_paths)  # Brownian increment
         S[:, i] = S[:, i-1] * np.exp((r - 0.5 * sigma ** 2) * dt + sigma * np.sqrt(dt) * dW)  # Euler-Maruyama step
     return S
-
-
-def calculate_asian_and_lookback_option_prices(S, K, r, t):
-    """Calculate prices for Asian and Lookback options."""
-    avg = np.mean(S, axis=1)  # mean stock price over the path
-    maxim = np.max(S, axis=1)  # maximum stock price over the path
-    asian_call = np.exp(-r * t) * np.maximum(avg - K, 0)  # Asian call payoff
-    asian_put = np.exp(-r * t) * np.maximum(K - avg, 0)  # Asian put payoff
-    lookback_call = np.exp(-r * t) * np.maximum(maxim - K, 0)  # Lookback call payoff
-    lookback_put = np.exp(-r * t) * np.maximum(K - maxim, 0)  # Lookback put payoff
-    return asian_call, asian_put, lookback_call, lookback_put
 
 
 def plot_stock_price_simulations(S, NN=1000):
@@ -42,6 +32,25 @@ def plot_stock_price_simulations(S, NN=1000):
     plt.ylabel('Stock Price')
     plt.title('Stock Price Movements Simulated Using Euler-Maruyama Method')
     plt.show()
+
+
+def asian_option(S, K, r, t):
+    avg = np.mean(S, axis=1)  # mean stock price over the path
+    asian_call = np.exp(-r * t) * np.maximum(avg - K, 0)
+    asian_put = np.exp(-r * t) * np.maximum(K - avg, 0)
+    return np.mean(asian_call), np.mean(asian_put)
+
+
+def lookback_option(S, K, r, t, fixed_strike=1):
+    min_S = np.min(S, axis=1)  # minimum stock price over the path
+    max_S = np.max(S, axis=1)  # maximum stock price over the path
+    if fixed_strike:
+        lookback_call = np.exp(-r * t) * np.maximum(max_S - K, 0)
+        lookback_put = np.exp(-r * t) * np.maximum(K - min_S, 0)
+    else:  # calculate the option payoffs for floating strike now
+        lookback_call = np.exp(-r * t) * np.maximum(S[:, -1] - min_S, 0)
+        lookback_put = np.exp(-r * t) * np.maximum(max_S - S[:, -1], 0)
+    return np.mean(lookback_call), np.mean(lookback_put)
 
 
 def plot_option_prices_vs_stock_prices(S, option_prices, option_names):
@@ -84,11 +93,6 @@ def summarize_option_prices(option_prices, option_names):
 
 def main():
     S = simulate_stock_price(S0, r, sigma, t, dt, number_of_mc_paths)
-    plot_stock_price_simulations(S)
-    option_prices = calculate_asian_and_lookback_option_prices(S, K, r, t)
-    option_names = ['Asian Call', 'Asian Put', 'Lookback Call', 'Lookback Put']
-    plot_option_prices_vs_stock_prices(S, option_prices, option_names)
-    summarize_option_prices(option_prices, option_names)
 
 
 if __name__ == "__main__":
