@@ -69,7 +69,7 @@ def plot_option_prices(S, K, r, t):
     # Calculate option prices + plot them in a bar diagram
     asian_call, asian_put = asian_option(S, K, r, t)
     lookback_fixed_call, lookback_fixed_put = lookback_option(S, K, r, t, fixed_strike=1)
-    lookback_float_call, lookback_float_put = lookback_option(S, r, t, t, fixed_strike=0)
+    lookback_float_call, lookback_float_put = lookback_option(S, K, r, t, fixed_strike=0)
 
     plt.figure(figsize=(10, 6))
     labels = ['Asian Call', 'Asian Put',
