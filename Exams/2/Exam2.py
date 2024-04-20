@@ -23,6 +23,7 @@ def simulate_stock_price(S0, r, sigma, t, dt, number_of_mc_paths=10000):
 
 
 def asian_option(S, K, r, t):
+    """Calculate Asian call + put option prices by discounting their expected payoffs."""
     avg = np.mean(S, axis=1)  # mean stock price over the path
     asian_call = np.exp(-r * t) * np.maximum(avg - K, 0)
     asian_put = np.exp(-r * t) * np.maximum(K - avg, 0)
@@ -30,6 +31,7 @@ def asian_option(S, K, r, t):
 
 
 def lookback_option(S, K, r, t, fixed_strike=1):
+    """Calculate Lookback call + put option prices by discounting their expected payoffs."""
     min_S = np.min(S, axis=1)  # minimum stock price over the path
     max_S = np.max(S, axis=1)  # maximum stock price over the path
     if fixed_strike:
@@ -63,7 +65,7 @@ def plot_stock_simulations(S, plot_avg_min_max=0, NN=1000):
 
 
 def plot_option_prices(S, K, r, t):
-    """Plot the prices of different options."""
+    """Plot the prices of different options types."""
     # Calculate option prices + plot them in a bar diagram
     asian_call, asian_put = asian_option(S, K, r, t)
     lookback_fixed_call, lookback_fixed_put = lookback_option(S, K, r, t, fixed_strike=1)
@@ -90,7 +92,7 @@ def plot_option_prices(S, K, r, t):
 
 def main():
     S = simulate_stock_price(S0, r, sigma, t, dt, number_of_mc_paths)
-    plot_stock_simulations(S, plot_avg_min_max=0, NN=1000)
+    plot_stock_simulations(S, plot_avg_min_max=1, NN=1000)
     plot_option_prices(S, K, r, t)
 
 

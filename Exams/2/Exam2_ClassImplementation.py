@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-class OptionPricing:
+class OptionPricer:
     def __init__(self, S0, K, r, t, dt, sigma, number_of_mc_paths):
         self.S0 = S0
         self.K = K
@@ -89,8 +89,8 @@ class OptionPricing:
 
 
 def main():
-    op = OptionPricing(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=50000)
-    op.plot_stock_simulations(plot_avg_min_max=0, NN=1000)
+    op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=50000)
+    op.plot_stock_simulations(plot_avg_min_max=1, NN=1000)
     op.plot_option_prices()
 
 
