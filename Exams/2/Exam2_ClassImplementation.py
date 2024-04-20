@@ -63,7 +63,7 @@ class OptionPricer:
         plt.show()
 
     def plot_option_prices(self):
-        """Plot the prices of different options types."""
+        """Calculate + plot the prices of different options types."""
         # Calculate option prices + plot them in a bar diagram
         asian_call, asian_put = self.asian_option()
         lookback_fixed_call, lookback_fixed_put = self.lookback_option(fixed_strike=1)
@@ -79,7 +79,8 @@ class OptionPricer:
         # Annotate bars with prices
         for bar in bars:
             option_price = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width() / 2, option_price + 0.01, round(option_price, 2), ha='center', va='bottom')
+            plt.text(bar.get_x() + bar.get_width() / 2, option_price + 0.01, round(option_price, 2),
+                     ha='center', va='bottom', color='blue', weight='bold')
 
         plt.ylabel('Option Price')
         plt.title(f'Option Price\nS0={self.S0}, K={self.K}, t={self.t}, sigma={self.sigma}, r={self.r}')

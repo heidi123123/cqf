@@ -65,7 +65,7 @@ def plot_stock_simulations(S, plot_avg_min_max=0, NN=1000):
 
 
 def plot_option_prices(S, K, r, t):
-    """Plot the prices of different options types."""
+    """Calculate + plot the prices of different options types."""
     # Calculate option prices + plot them in a bar diagram
     asian_call, asian_put = asian_option(S, K, r, t)
     lookback_fixed_call, lookback_fixed_put = lookback_option(S, K, r, t, fixed_strike=1)
@@ -81,7 +81,8 @@ def plot_option_prices(S, K, r, t):
     # Annotate bars with prices
     for bar in bars:
         option_price = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width() / 2, option_price + 0.01, round(option_price, 2), ha='center', va='bottom')
+        plt.text(bar.get_x() + bar.get_width() / 2, option_price + 0.01, round(option_price, 2),
+                 ha='center', va='bottom', color='blue', weight='bold')
 
     plt.ylabel('Option Price')
     plt.title(f'Option Price\nS0={S0}, K={K}, t={t}, sigma={sigma}, r={r}')
