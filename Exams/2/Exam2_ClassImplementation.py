@@ -32,8 +32,8 @@ class OptionPricer:
 
     def lookback_option(self, fixed_strike=1):
         """Calculate Lookback call + put option prices by discounting their expected payoffs."""
-        min_S = np.min(self.S, axis=1)  # minimum stock price over the path
-        max_S = np.max(self.S, axis=1)  # maximum stock price over the path
+        min_S = np.min(self.S, axis=1)  # minimum stock price over all simulations
+        max_S = np.max(self.S, axis=1)  # maximum stock price over all simulations
         if fixed_strike:
             lookback_call = np.exp(-self.r * self.t) * np.maximum(max_S - self.K, 0)
             lookback_put = np.exp(-self.r * self.t) * np.maximum(self.K - min_S, 0)
@@ -78,8 +78,8 @@ class OptionPricer:
 
         # Annotate bars with prices
         for bar in bars:
-            yval = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width() / 2, yval + 0.01, round(yval, 2), ha='center', va='bottom')
+            option_price = bar.get_height()
+            plt.text(bar.get_x() + bar.get_width() / 2, option_price + 0.01, round(option_price, 2), ha='center', va='bottom')
 
         plt.ylabel('Option Price')
         plt.title(f'Option Price\nS0={self.S0}, K={self.K}, t={self.t}, sigma={self.sigma}, r={self.r}')
@@ -90,7 +90,7 @@ class OptionPricer:
 
 def main():
     op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=50000)
-    op.plot_stock_simulations(plot_avg_min_max=1, NN=1000)
+    # op.plot_stock_simulations(plot_avg_min_max=1, NN=1000)
     op.plot_option_prices()
 
 
