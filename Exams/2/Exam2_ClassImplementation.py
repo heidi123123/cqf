@@ -62,12 +62,18 @@ class OptionPricer:
         plt.legend()
         plt.show()
 
-    def plot_option_prices(self):
-        """Calculate + plot the prices of different options types."""
-        # Calculate option prices + plot them in a bar diagram
+    def calculate_option_prices(self):
+        """Calculate the prices of different options types."""
+        # Calculate option prices
         asian_call, asian_put = self.asian_option()
         lookback_fixed_call, lookback_fixed_put = self.lookback_option(fixed_strike=1)
         lookback_float_call, lookback_float_put = self.lookback_option(fixed_strike=0)
+        return asian_call, asian_put, lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put
+
+    def plot_option_prices(self):
+        """Plot the prices of different options types."""
+        # Plot option prices in a bar diagram
+        asian_call, asian_put, lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put = self.calculate_option_prices()
 
         plt.figure(figsize=(10, 6))
         labels = ['Asian Call', 'Asian Put',
@@ -89,10 +95,41 @@ class OptionPricer:
         plt.show()
 
 
+def plot_option_prices_vs_param(param_name, param_values, option_prices, log_x_axis=False):
+    """Plot the option prices for different values of a parameter."""
+    plt.figure(figsize=(10, 6))
+
+    colors = ['b', 'g', 'r', 'c', 'm', 'y']  # define order of colors for the plots, so option price scatter dot
+    # has same color as the connecting line
+
+    for i, prices in enumerate(zip(*option_prices)):  # transpose option_prices list
+        for value, price in zip(param_values, prices):
+            plt.scatter(value, price, marker='o', color=colors[i])  # plot option price as scatter point
+            plt.text(value, price, f"{param_name}={str(value)}", fontsize=8)  # add text annotation for each point
+
+        # plot connecting lines for the scatter points of each option type, color=... ensures same color is used
+        label_list = ['Asian Call', 'Asian Put',
+                      'Lookback Fixed Call', 'Lookback Fixed Put',
+                      'Lookback Float Call', 'Lookback Float Put']
+        plt.plot(param_values, prices, label=label_list[i], color=colors[i])
+
+    plt.xlabel(param_name)
+    plt.ylabel('Option Price')
+    plt.title(f'Option Prices vs {param_name}')
+    if log_x_axis:
+        plt.xscale('log')  # Set x-axis to logarithmic scale
+    plt.legend()
+    plt.show()
+
+
 def main():
-    op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=50000)
-    # op.plot_stock_simulations(plot_avg_min_max=1, NN=1000)
-    op.plot_option_prices()
+    param_name = "S0"
+    param_values = np.linspace(50, 150, 10 + 1)  # an equidistant list of 10 values for S0 from 50 to 150
+    option_prices = []
+    for param_value in param_values:
+        op = OptionPricer(S0=param_value, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=50000)
+        option_prices.append(op.calculate_option_prices())
+    plot_option_prices_vs_param(param_name, param_values, option_prices, log_x_axis=False)
 
 
 if __name__ == "__main__":
