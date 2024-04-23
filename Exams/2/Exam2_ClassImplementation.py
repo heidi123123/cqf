@@ -125,9 +125,19 @@ def plot_option_prices_vs_param(param_name, param_values, option_prices, annotat
     plt.ylabel('Option Price')
     plt.title(f'Option Prices vs {param_name}')
     if log_x_axis:
-        plt.xscale('log')  # Set x-axis to logarithmic scale
-    plt.legend()
+        plt.xscale('log')  # set x-axis to logarithmic scale
+    plt.legend(loc='center left', bbox_to_anchor=(1.04, 0.5))  # legend outside of graphs
     plt.show()
+
+
+def analyze_number_of_mc_paths():
+    param_name = "N"
+    param_values = [10, 30, 60, 100, 300, 500, 1000, 5000, 10000, 20000, 50000, 100000, 1000000]
+    option_prices = []
+    for param_value in param_values:
+        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=param_value)
+        option_prices.append(op.calculate_option_prices())
+    plot_option_prices_vs_param(param_name, param_values, option_prices, log_x_axis=True)
 
 
 def analyze_initial_value():
@@ -135,7 +145,7 @@ def analyze_initial_value():
     param_values = np.linspace(50, 150, 10 + 1)  # equidistant list of 10 values for S0 from 50 to 150
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=param_value, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=50000)
+        op = OptionPricer(S0=param_value, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=20000)
         option_prices.append(op.calculate_option_prices())
     plot_option_prices_vs_param(param_name, param_values, option_prices, log_x_axis=False)
 
@@ -145,7 +155,7 @@ def analyze_strike():
     param_values = np.linspace(50, 150, 10 + 1)  # equidistant list of 10 values for K from 50 to 150
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=100, K=param_value, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=50000)
+        op = OptionPricer(S0=100, K=param_value, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=20000)
         option_prices.append(op.calculate_option_prices())
     plot_option_prices_vs_param(param_name, param_values, option_prices)
 
@@ -155,7 +165,7 @@ def analyze_time_to_expiry():
     param_values = np.linspace(0.01, 5, 10 + 1)  # equidistant list of 10 values for t (time to expiry) from 0 to 1 year
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=100, K=100, r=0.05, t=param_value, dt=0.01, sigma=0.2, number_of_mc_paths=50000)
+        op = OptionPricer(S0=100, K=100, r=0.05, t=param_value, dt=0.01, sigma=0.2, number_of_mc_paths=20000)
         option_prices.append(op.calculate_option_prices())
     plot_option_prices_vs_param(param_name, param_values, option_prices, annotation_precision=1)
 
@@ -165,7 +175,7 @@ def analyze_time_step():
     param_values = [0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1]
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=param_value, sigma=0.2, number_of_mc_paths=50000)
+        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=param_value, sigma=0.2, number_of_mc_paths=20000)
         option_prices.append(op.calculate_option_prices())
     plot_option_prices_vs_param(param_name, param_values, option_prices, annotation_precision=4, log_x_axis=True)
 
@@ -175,19 +185,10 @@ def analyze_volatility():
     param_values = np.linspace(0.01, 1, 10 + 1)  # an equidistant list of 10 values for sigma from 1% to 100%
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=param_value, number_of_mc_paths=50000)
+        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=param_value, number_of_mc_paths=20000)
         option_prices.append(op.calculate_option_prices())
     plot_option_prices_vs_param(param_name, param_values, option_prices)
 
-
-def analyze_number_of_mc_paths():
-    param_name = "N"
-    param_values = [10, 30, 60, 100, 300, 500, 1000, 5000, 10000, 50000, 100000, 1000000]
-    option_prices = []
-    for param_value in param_values:
-        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=param_value)
-        option_prices.append(op.calculate_option_prices())
-    plot_option_prices_vs_param(param_name, param_values, option_prices, log_x_axis=True)
 
 
 def main():
