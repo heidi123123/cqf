@@ -23,11 +23,15 @@ class OptionPricer:
             S[:, i] = S[:, i-1] * np.exp((self.r - 0.5 * self.sigma ** 2) * self.dt + self.sigma * np.sqrt(self.dt) * dW)  # Euler-Maruyama step
         return S
 
-    def asian_option(self):
+    def asian_option(self, fixed_strike=1):
         """Calculate Asian call + put option prices by discounting their expected payoffs."""
-        avg = np.mean(self.S, axis=1)  # mean stock price over the path
-        asian_call = np.exp(-self.r * self.t) * np.maximum(avg - self.K, 0)
-        asian_put = np.exp(-self.r * self.t) * np.maximum(self.K - avg, 0)
+        avg = np.mean(self.S, axis=1)  # mean stock price over all simulations
+        if fixed_strike:
+            asian_call = np.exp(-self.r * self.t) * np.maximum(avg - self.K, 0)
+            asian_put = np.exp(-self.r * self.t) * np.maximum(self.K - avg, 0)
+        else:  # calculate the option payoffs for floating strike now
+            asian_call = np.exp(-self.r * self.t) * np.maximum(self.S[:, -1] - avg, 0)
+            asian_put = np.exp(-self.r * self.t) * np.maximum(avg - self.S[:, -1], 0)
         return np.mean(asian_call), np.mean(asian_put)
 
     def lookback_option(self, fixed_strike=1):
@@ -65,21 +69,23 @@ class OptionPricer:
     def calculate_option_prices(self):
         """Calculate the prices of different options types."""
         # Calculate option prices
-        asian_call, asian_put = self.asian_option()
+        asian_fixed_call, asian_fixed_put = self.asian_option(fixed_strike=1)
+        asian_float_call, asian_float_put = self.asian_option(fixed_strike=0)
         lookback_fixed_call, lookback_fixed_put = self.lookback_option(fixed_strike=1)
         lookback_float_call, lookback_float_put = self.lookback_option(fixed_strike=0)
-        return asian_call, asian_put, lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put
+        return asian_fixed_call, asian_fixed_put, asian_float_call, asian_float_put,\
+            lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put
 
     def plot_option_prices(self):
         """Plot the prices of different options types."""
         # Plot option prices in a bar diagram
-        asian_call, asian_put, lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put = self.calculate_option_prices()
-
         plt.figure(figsize=(10, 6))
-        labels = ['Asian Call', 'Asian Put',
+        labels = ['Asian Call\nFixed Strike', 'Asian Put\nFixed Strike',
+                  'Asian Call\nFloating Strike', 'Asian Put\nFloating Strike',
                   'Lookback Call\nFixed Strike', 'Lookback Put\nFixed Strike',
                   'Lookback Call\nFloating Strike', 'Lookback Put\nFloating Strike']
-        prices = [asian_call, asian_put, lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put]
+
+        prices = self.calculate_option_prices()
         bars = plt.bar(labels, prices)
 
         # Annotate bars with prices
@@ -100,7 +106,7 @@ def plot_option_prices_vs_param(param_name, param_values, option_prices, annotat
     plt.figure(figsize=(10, 6))
 
     # define order of colors for the plots, so option price scatter dot has same color as the connecting line
-    colors = ['b', 'g', 'r', 'c', 'm', 'y']
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'rosybrown']
 
     for i, prices in enumerate(zip(*option_prices)):  # transpose option_prices list
         for value, price in zip(param_values, prices):
@@ -109,7 +115,8 @@ def plot_option_prices_vs_param(param_name, param_values, option_prices, annotat
             plt.text(value, price, f"{param_name}={str(round(value, annotation_precision))}", fontsize=8)
 
         # plot connecting lines for the scatter points of each option type, color=... ensures same color is used
-        label_list = ['Asian Call', 'Asian Put',
+        label_list = ['Asian Fixed Call', 'Asian Fixed Put',
+                      'Asian Float Call', 'Asian Float Put',
                       'Lookback Fixed Call', 'Lookback Fixed Put',
                       'Lookback Float Call', 'Lookback Float Put']
         plt.plot(param_values, prices, label=label_list[i], color=colors[i])

@@ -22,11 +22,15 @@ def simulate_stock_price(S0, r, sigma, t, dt, number_of_mc_paths=10000):
     return S
 
 
-def asian_option(S, K, r, t):
+def asian_option(S, K, r, t, fixed_strike=1):
     """Calculate Asian call + put option prices by discounting their expected payoffs."""
-    avg = np.mean(S, axis=1)  # mean stock price over the path
-    asian_call = np.exp(-r * t) * np.maximum(avg - K, 0)
-    asian_put = np.exp(-r * t) * np.maximum(K - avg, 0)
+    avg = np.mean(S, axis=1)  # mean stock price over all simulations
+    if fixed_strike:
+        asian_call = np.exp(-r * t) * np.maximum(avg - K, 0)
+        asian_put = np.exp(-r * t) * np.maximum(K - avg, 0)
+    else:  # calculate the option payoffs for floating strike now
+        asian_call = np.exp(-r * t) * np.maximum(S[:, -1] - avg, 0)
+        asian_put = np.exp(-r * t) * np.maximum(avg - S[:, -1], 0)
     return np.mean(asian_call), np.mean(asian_put)
 
 
@@ -67,15 +71,18 @@ def plot_stock_simulations(S, plot_avg_min_max=0, NN=1000):
 def plot_option_prices(S, K, r, t):
     """Calculate + plot the prices of different options types."""
     # Calculate option prices + plot them in a bar diagram
-    asian_call, asian_put = asian_option(S, K, r, t)
+    asian_fixed_call, asian_fixed_put = asian_option(S, K, r, t, fixed_strike=1)
+    asian_float_call, asian_float_put = asian_option(S, K, r, t, fixed_strike=0)
     lookback_fixed_call, lookback_fixed_put = lookback_option(S, K, r, t, fixed_strike=1)
     lookback_float_call, lookback_float_put = lookback_option(S, K, r, t, fixed_strike=0)
 
     plt.figure(figsize=(10, 6))
-    labels = ['Asian Call', 'Asian Put',
+    labels = ['Asian Call\nFixed Strike', 'Asian Put\nFixed Strike',
+              'Asian Call\nFloating Strike', 'Asian Put\nFloating Strike',
               'Lookback Call\nFixed Strike', 'Lookback Put\nFixed Strike',
               'Lookback Call\nFloating Strike', 'Lookback Put\nFloating Strike']
-    prices = [asian_call, asian_put, lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put]
+    prices = [asian_fixed_call, asian_fixed_put, asian_float_call, asian_float_put,
+              lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put]
     bars = plt.bar(labels, prices)
 
     # Annotate bars with prices
