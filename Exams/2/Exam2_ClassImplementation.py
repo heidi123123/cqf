@@ -190,7 +190,6 @@ def analyze_volatility():
     plot_option_prices_vs_param(param_name, param_values, option_prices)
 
 
-
 def main():
     analyze_time_step()
 
