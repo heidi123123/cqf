@@ -1,5 +1,6 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import gmean
 
 
 class OptionPricer:
@@ -23,9 +24,12 @@ class OptionPricer:
             S[:, i] = S[:, i-1] * np.exp((self.r - 0.5 * self.sigma ** 2) * self.dt + self.sigma * np.sqrt(self.dt) * dW)  # Euler-Maruyama step
         return S
 
-    def asian_option(self, fixed_strike=1):
+    def asian_option(self, arithmetic_avg=1, fixed_strike=1):
         """Calculate Asian call + put option prices by discounting their expected payoffs."""
-        avg = np.mean(self.S, axis=1)  # mean stock price over all simulations
+        if arithmetic_avg:  # calculate arithmetic mean stock price over all simulations
+            avg = np.mean(self.S, axis=1)
+        else:  # calculate geometric average
+            avg = gmean(self.S, axis=1)
         if fixed_strike:
             asian_call = np.exp(-self.r * self.t) * np.maximum(avg - self.K, 0)
             asian_put = np.exp(-self.r * self.t) * np.maximum(self.K - avg, 0)
@@ -49,20 +53,23 @@ class OptionPricer:
     def calculate_option_prices(self):
         """Calculate the prices of different options types."""
         # Calculate option prices
-        asian_fixed_call, asian_fixed_put = self.asian_option(fixed_strike=1)
-        asian_float_call, asian_float_put = self.asian_option(fixed_strike=0)
+        asian_fixed_call, asian_fixed_put = self.asian_option(arithmetic_avg=1, fixed_strike=1)
+        asian_float_call, asian_float_put = self.asian_option(arithmetic_avg=1, fixed_strike=0)
+        asian_g_fixed_call, asian_g_fixed_put = self.asian_option(arithmetic_avg=0, fixed_strike=1)
+        asian_g_float_call, asian_g_float_put = self.asian_option(arithmetic_avg=0, fixed_strike=0)
         lookback_fixed_call, lookback_fixed_put = self.lookback_option(fixed_strike=1)
         lookback_float_call, lookback_float_put = self.lookback_option(fixed_strike=0)
         return asian_fixed_call, asian_fixed_put, asian_float_call, asian_float_put,\
+            asian_g_fixed_call, asian_g_fixed_put, asian_g_float_call, asian_g_float_put,\
             lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put
 
 
 def plot_option_prices_vs_param(param_name, param_values, option_prices, annotation_precision=2, log_x_axis=False):
     """Plot the option prices for different values of a parameter."""
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 6))
 
     # define order of colors for the plots, so option price scatter dot has same color as the connecting line
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'rosybrown']
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'rosybrown', 'darkorange', 'grey', 'lime', 'teal']
 
     for i, prices in enumerate(zip(*option_prices)):  # transpose option_prices list
         for value, price in zip(param_values, prices):
@@ -71,8 +78,10 @@ def plot_option_prices_vs_param(param_name, param_values, option_prices, annotat
             plt.text(value, price, f"{param_name}={str(round(value, annotation_precision))}", fontsize=8)
 
         # plot connecting lines for the scatter points of each option type, color=... ensures same color is used
-        label_list = ['Asian Fixed Call', 'Asian Fixed Put',
-                      'Asian Float Call', 'Asian Float Put',
+        label_list = ['Asian Arithmetic Avg.\nFixed Call', 'Asian Arithmetic Avg.\n Fixed Put',
+                      'Asian Arithmetic Avg.\n Float Call', 'Asian Arithmetic Avg.\n Float Put',
+                      'Asian Geometric Avg.\n Fixed Call', 'Asian Geometric Avg.\n Fixed Put',
+                      'Asian Geometric Avg.\n Float Call', 'Asian Geometric Avg.\n Float Put',
                       'Lookback Fixed Call', 'Lookback Fixed Put',
                       'Lookback Float Call', 'Lookback Float Put']
         plt.plot(param_values, prices, label=label_list[i], color=colors[i])
@@ -83,6 +92,7 @@ def plot_option_prices_vs_param(param_name, param_values, option_prices, annotat
     if log_x_axis:
         plt.xscale('log')  # set x-axis to logarithmic scale
     plt.legend(loc='center left', bbox_to_anchor=(1.04, 0.5))  # legend outside of graphs
+    plt.tight_layout()
     plt.show()
 
 
@@ -147,7 +157,7 @@ def analyze_volatility():
 
 
 def main():
-    analyze_time_step()
+    analyze_initial_value()
 
 
 if __name__ == "__main__":
