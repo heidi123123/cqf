@@ -46,26 +46,6 @@ class OptionPricer:
             lookback_put = np.exp(-self.r * self.t) * np.maximum(max_S - self.S[:, -1], 0)
         return np.mean(lookback_call), np.mean(lookback_put)
 
-    def plot_stock_simulations(self, plot_avg_min_max=0, NN=1000):
-        """Plot the first NN stock price simulations along with the average, minimum and maximum."""
-        plt.figure(figsize=(10, 6))
-        for i in range(NN):  # plot the first NN paths
-            plt.plot(self.S[i, :], color='gray', linewidth=0.5, linestyle='dashed')
-
-        if plot_avg_min_max:  # plot other functions of the stock price simulations, like average, min + max
-            avg_S = np.mean(self.S, axis=0)
-            min_S = np.min(self.S, axis=0)
-            max_S = np.max(self.S, axis=0)
-            plt.plot(avg_S, label='Average Stock Price')
-            plt.plot(min_S, label='Minimum Stock Price')
-            plt.plot(max_S, label='Maximum Stock Price')
-
-        plt.xlabel('Time Steps')
-        plt.ylabel('Stock Price')
-        plt.title(f'First {NN} Stock Price Simulations')
-        plt.legend()
-        plt.show()
-
     def calculate_option_prices(self):
         """Calculate the prices of different options types."""
         # Calculate option prices
@@ -75,30 +55,6 @@ class OptionPricer:
         lookback_float_call, lookback_float_put = self.lookback_option(fixed_strike=0)
         return asian_fixed_call, asian_fixed_put, asian_float_call, asian_float_put,\
             lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put
-
-    def plot_option_prices(self):
-        """Plot the prices of different options types."""
-        # Plot option prices in a bar diagram
-        plt.figure(figsize=(10, 6))
-        labels = ['Asian Call\nFixed Strike', 'Asian Put\nFixed Strike',
-                  'Asian Call\nFloating Strike', 'Asian Put\nFloating Strike',
-                  'Lookback Call\nFixed Strike', 'Lookback Put\nFixed Strike',
-                  'Lookback Call\nFloating Strike', 'Lookback Put\nFloating Strike']
-
-        prices = self.calculate_option_prices()
-        bars = plt.bar(labels, prices)
-
-        # Annotate bars with prices
-        for bar in bars:
-            option_price = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width() / 2, option_price + 0.01, round(option_price, 2),
-                     ha='center', va='bottom', color='blue', weight='bold')
-
-        plt.ylabel('Option Price')
-        plt.title(f'Option Price\nS0={self.S0}, K={self.K}, t={self.t}, sigma={self.sigma}, r={self.r}')
-        plt.xticks()
-        plt.tight_layout()  # Adjust layout to prevent labels from being cut off
-        plt.show()
 
 
 def plot_option_prices_vs_param(param_name, param_values, option_prices, annotation_precision=2, log_x_axis=False):
