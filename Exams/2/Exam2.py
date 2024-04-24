@@ -1,6 +1,6 @@
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
+from scipy.stats import gmean
 
 S0 = 100
 K = 100
@@ -22,9 +22,12 @@ def simulate_stock_price(S0, r, sigma, t, dt, number_of_mc_paths=10000):
     return S
 
 
-def asian_option(S, K, r, t, fixed_strike=1):
+def asian_option(S, K, r, t, arithmetic_avg=1, fixed_strike=1):
     """Calculate Asian call + put option prices by discounting their expected payoffs."""
-    avg = np.mean(S, axis=1)  # mean stock price over all simulations
+    if arithmetic_avg:  # calculate arithmetic mean stock price over all simulations
+        avg = np.mean(S, axis=1)
+    else:  # calculate geometric average
+        avg = gmean(S, axis=1)
     if fixed_strike:
         asian_call = np.exp(-r * t) * np.maximum(avg - K, 0)
         asian_put = np.exp(-r * t) * np.maximum(K - avg, 0)
@@ -71,17 +74,22 @@ def plot_stock_simulations(S, plot_avg_min_max=0, NN=1000):
 def plot_option_prices(S, K, r, t):
     """Calculate + plot the prices of different options types."""
     # Calculate option prices + plot them in a bar diagram
-    asian_fixed_call, asian_fixed_put = asian_option(S, K, r, t, fixed_strike=1)
-    asian_float_call, asian_float_put = asian_option(S, K, r, t, fixed_strike=0)
+    asian_fixed_call, asian_fixed_put = asian_option(S, K, r, t, arithmetic_avg=1, fixed_strike=1)
+    asian_float_call, asian_float_put = asian_option(S, K, r, t, arithmetic_avg=1, fixed_strike=0)
+    asian_g_fixed_call, asian_g_fixed_put = asian_option(S, K, r, t, arithmetic_avg=0, fixed_strike=0)
+    asian_g_float_call, asian_g_float_put = asian_option(S, K, r, t, arithmetic_avg=0, fixed_strike=1)
     lookback_fixed_call, lookback_fixed_put = lookback_option(S, K, r, t, fixed_strike=1)
     lookback_float_call, lookback_float_put = lookback_option(S, K, r, t, fixed_strike=0)
 
-    plt.figure(figsize=(10, 6))
-    labels = ['Asian Call\nFixed Strike', 'Asian Put\nFixed Strike',
-              'Asian Call\nFloating Strike', 'Asian Put\nFloating Strike',
+    plt.figure(figsize=(12, 6))
+    labels = ['Asian Call\nArithm. Avg.\nFixed Strike', 'Asian Put\nArithm. Avg.\nFixed Strike',
+              'Asian Call\nArithm. Avg.\nFloating Strike', 'Asian Put\nArithm. Avg.\nFloating Strike',
+              'Asian Call\nGeom. Avg.\nFixed Strike', 'Asian Put\nGeom. Avg.\nFixed Strike',
+              'Asian Call\nGeom. Avg.\nFloating Strike', 'Asian Put\nGeom. Avg.\nFloating Strike',
               'Lookback Call\nFixed Strike', 'Lookback Put\nFixed Strike',
               'Lookback Call\nFloating Strike', 'Lookback Put\nFloating Strike']
     prices = [asian_fixed_call, asian_fixed_put, asian_float_call, asian_float_put,
+              asian_g_fixed_call, asian_g_fixed_put, asian_g_float_call, asian_g_float_put,
               lookback_fixed_call, lookback_fixed_put, lookback_float_call, lookback_float_put]
     bars = plt.bar(labels, prices)
 
@@ -93,7 +101,7 @@ def plot_option_prices(S, K, r, t):
 
     plt.ylabel('Option Price')
     plt.title(f'Option Price\nS0={S0}, K={K}, t={t}, sigma={sigma}, r={r}')
-    plt.xticks()
+    plt.xticks(fontsize=8)
     plt.tight_layout()  # Adjust layout to prevent labels from being cut off
     plt.show()
 
