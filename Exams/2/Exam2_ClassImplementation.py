@@ -175,9 +175,7 @@ def analyze_volatility(plot_all_asian_options=0):
     option_prices = []
     for param_value in param_values:
         op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=param_value, number_of_mc_paths=NUMBER_OF_MC_PATHS)
-        if not plot_all_asian_options:
-            all_option_prices = op.calculate_option_prices()
-            option_prices.append(get_option_prices_to_plot(op, plot_all_asian_options))
+        option_prices.append(get_option_prices_to_plot(op, plot_all_asian_options))
     plot_option_prices_vs_param(param_name, param_values, option_prices, plot_all_asian_options)
 
 
