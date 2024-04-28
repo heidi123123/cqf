@@ -124,7 +124,7 @@ def analyze_initial_value(plot_all_asian_options=0):
     param_values = np.linspace(50, 150, 10 + 1)  # equidistant list of 10 values for S0 from 50 to 150
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=param_value, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=20000)
+        op = OptionPricer(S0=param_value, K=100, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=NUMBER_OF_MC_PATHS)
         option_prices.append(get_option_prices_to_plot(op, plot_all_asian_options))
     plot_option_prices_vs_param(param_name, param_values, option_prices, plot_all_asian_options, log_x_axis=False)
 
@@ -134,8 +134,8 @@ def analyze_strike(plot_all_asian_options=0):
     param_values = np.linspace(50, 150, 10 + 1)  # equidistant list of 10 values for K from 50 to 150
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=100, K=param_value, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=20000)
-        option_prices = get_option_prices_to_plot(op, plot_all_asian_options)
+        op = OptionPricer(S0=100, K=param_value, r=0.05, t=1, dt=0.01, sigma=0.2, number_of_mc_paths=NUMBER_OF_MC_PATHS)
+        option_prices.append(get_option_prices_to_plot(op, plot_all_asian_options))
     plot_option_prices_vs_param(param_name, param_values, option_prices, plot_all_asian_options)
 
 
@@ -144,8 +144,8 @@ def analyze_time_to_expiry(plot_all_asian_options=0):
     param_values = np.linspace(0.01, 5, 10 + 1)  # equidistant list of 10 values for t (time to expiry) from 0 to 1 year
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=100, K=100, r=0.05, t=param_value, dt=0.01, sigma=0.2, number_of_mc_paths=20000)
-        option_prices = get_option_prices_to_plot(op, plot_all_asian_options)
+        op = OptionPricer(S0=100, K=100, r=0.05, t=param_value, dt=0.01, sigma=0.2, number_of_mc_paths=NUMBER_OF_MC_PATHS)
+        option_prices.append(get_option_prices_to_plot(op, plot_all_asian_options))
     plot_option_prices_vs_param(param_name, param_values, option_prices, plot_all_asian_options, annotation_precision=1)
 
 
@@ -154,8 +154,8 @@ def analyze_time_step(plot_all_asian_options=0):
     param_values = [0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1]
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=param_value, sigma=0.2, number_of_mc_paths=20000)
-        option_prices = get_option_prices_to_plot(op, plot_all_asian_options)
+        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=param_value, sigma=0.2, number_of_mc_paths=NUMBER_OF_MC_PATHS)
+        option_prices.append(get_option_prices_to_plot(op, plot_all_asian_options))
     plot_option_prices_vs_param(param_name, param_values, option_prices, plot_all_asian_options, annotation_precision=4, log_x_axis=True)
 
 
@@ -164,16 +164,13 @@ def analyze_volatility(plot_all_asian_options=0):
     param_values = np.linspace(0.01, 1, 10 + 1)  # an equidistant list of 10 values for sigma from 1% to 100%
     option_prices = []
     for param_value in param_values:
-        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=param_value, number_of_mc_paths=20000)
+        op = OptionPricer(S0=100, K=100, r=0.05, t=1, dt=0.01, sigma=param_value, number_of_mc_paths=NUMBER_OF_MC_PATHS)
         if not plot_all_asian_options:
             all_option_prices = op.calculate_option_prices()
-            option_prices.append(all_option_prices[:4] + all_option_prices[8:])
+            option_prices.append(get_option_prices_to_plot(op, plot_all_asian_options))
     plot_option_prices_vs_param(param_name, param_values, option_prices, plot_all_asian_options)
 
 
-def main():
-    analyze_initial_value(plot_all_asian_options=1)
-
-
 if __name__ == "__main__":
-    main()
+    NUMBER_OF_MC_PATHS = 10000
+    analyze_strike()
