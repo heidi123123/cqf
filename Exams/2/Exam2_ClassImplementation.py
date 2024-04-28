@@ -140,7 +140,7 @@ def analyze_strike(plot_all_asian_options=0):
 
 
 def analyze_risk_free_rate(plot_all_asian_options=0):
-    param_name = "K"
+    param_name = "r"
     param_values = np.linspace(0, 0.1, 10 + 1)  # an equidistant list of 10 values for r from 0% to 10%
     option_prices = []
     for param_value in param_values:
