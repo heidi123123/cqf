@@ -151,7 +151,7 @@ def analyze_risk_free_rate(plot_all_asian_options=0):
 
 def analyze_time_to_expiry(plot_all_asian_options=0):
     param_name = "t"
-    param_values = np.linspace(0.01, 5, 10 + 1)  # equidistant list of 10 values for t (time to expiry) from 0 to 1 year
+    param_values = np.linspace(0.01, 5, 10 + 1)  # equidistant list of 10 values for t (time to expiry) from 0 to 5 years
     option_prices = []
     for param_value in param_values:
         op = OptionPricer(S0=100, K=100, r=0.05, t=param_value, dt=0.01, sigma=0.2, number_of_mc_paths=NUMBER_OF_MC_PATHS)
