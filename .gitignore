@@ -39,7 +39,8 @@ dmypy.json
 # Ignore pytype static type analyzer
 .pytype/
 
-# Ignore Cython debug symbols
+# Ignore certain folders
 cython_debug/
 /github-malyginvladimir/
 /github-eightsmile/
+/_playground
