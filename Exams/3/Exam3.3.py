@@ -12,7 +12,7 @@ import shap
 
 
 # Prepare the data
-def prepare_dataframe(ticker="TSLA"):
+def prepare_dataframe(ticker):
     df = yf.download(ticker, start="2018-01-01")
     df['Return'] = df['Close'].pct_change()
     df.dropna(inplace=True)
@@ -45,11 +45,26 @@ def get_target(df):
     return np.where(df['Close'].shift(-1) > 0.995 * df['Close'], 1, 0)
 
 
-def variance_inflation_factor_analysis(X, threshold=5):
-    vif_data = pd.DataFrame()
-    vif_data["feature"] = X.columns
-    vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(len(X.columns))]
-    return vif_data[vif_data["VIF"] < threshold]
+def select_k_best(X_train, X_test, y_train, k=10):
+    selector = SelectKBest(f_classif, k=k)
+    X_train_selected = selector.fit_transform(X_train, y_train)
+    X_test_selected = selector.transform(X_test)
+    selected_features = X_train.columns[selector.get_support()]
+    return X_train_selected, X_test_selected, selected_features
+
+
+def rfecv_method(X_train, X_test, y_train, display_dataframe=0):
+    model = RandomForestClassifier(n_estimators=50, random_state=42)
+    rfecv = RFECV(estimator=model, cv=5, scoring='accuracy')
+    rfecv.fit(X_train, y_train)
+    X_train_selected = rfecv.transform(X_train)
+    X_test_selected = rfecv.transform(X_test)
+    selected_features = X_train.columns[rfecv.get_support()]
+    if display_dataframe:
+        rankings_df = pd.DataFrame({'Feature': X_train.columns,
+                                    'Ranking': rfecv.ranking_})
+        print(rankings_df.sort_values(by='Ranking'))
+    return X_train_selected, X_test_selected, selected_features
 
 
 def correlation_matrix_analysis(X):
@@ -60,29 +75,36 @@ def correlation_matrix_analysis(X):
     plt.show()
 
 
-def select_k_best(X, y, k=10):
-    selector = SelectKBest(k=k)
-    X_selected = selector.fit_transform(X, y)
-    selected_features = X.columns[selector.get_support()]
-    return selected_features, X_selected
+def variance_inflation_factor_analysis(X, threshold=5):
+    vif_data = pd.DataFrame()
+    vif_data["feature"] = X.columns
+    vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(len(X.columns))]
+    return vif_data[vif_data["VIF"] < threshold]
 
 
 if __name__ == "__main__":
-    df = prepare_dataframe()
-    features_df = get_features(df)
+    ticker = "TSLA"
+    df = prepare_dataframe(ticker)
+    features = get_features(df)
     target = get_target(df)
 
-    X_train, X_test, y_train, y_test = train_test_split(features_df, target, test_size=0.2)
+    X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
-    # 1. Variance Inflation Factor
+    # Feature selection with SelectKBest
+    X_train_kbest, X_test_kbest, selected_features_kbest = select_k_best(X_train, X_test, y_train, k=16)
+    print("SelectKBest selected features:", selected_features_kbest)
+
+    # Further feature selection with RFECV
+    X_train_rfecv, X_test_rfecv, selected_features_rfecv = rfecv_method(
+        pd.DataFrame(X_train_kbest, columns=selected_features_kbest),
+        pd.DataFrame(X_test_kbest, columns=selected_features_kbest), y_train)
+    print("RFECV selected features:", selected_features_rfecv)
+
+    # Correlation matrix
+    correlation_matrix_analysis(pd.DataFrame(X_train_rfecv, columns=selected_features_rfecv))
+
+    # Variance Inflation Factor
     vif_data = variance_inflation_factor_analysis(X_train)
     selected_features_vif = vif_data['feature']
     X_train_vif = X_train[selected_features_vif]
     print("VIF selected features:", vif_data)
-
-    # 2. Correlation Matrix
-    correlation_matrix_analysis(X_train)
-
-    # 3. SelectKBest
-    selected_features_kbest, X_train_kbest = select_k_best(X_train, y_train, k=10)
-    print("SelectKBest selected features:\n", selected_features_kbest)
