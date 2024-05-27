@@ -5,7 +5,9 @@ import seaborn as sns
 import yfinance as yf
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectKBest, f_classif, RFECV
-from sklearn.metrics import accuracy_score, classification_report, log_loss
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, log_loss, confusion_matrix, ConfusionMatrixDisplay, \
+    RocCurveDisplay
 from sklearn.model_selection import train_test_split, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -56,9 +58,9 @@ def select_k_best(X_train, X_test, y_train, k=10):
     return X_train_selected, X_test_selected, selected_features
 
 
-def rfecv_method(X_train, X_test, y_train, display_dataframe=0):
-    model = RandomForestClassifier(n_estimators=50, random_state=42)
-    rfecv = RFECV(estimator=model, cv=5, scoring="accuracy")
+def rfecv_method(X_train, X_test, y_train, step=0.1, n_estimators=50, scoring="accuracy", display_dataframe=0):
+    model = RandomForestClassifier(n_estimators=n_estimators, random_state=42)
+    rfecv = RFECV(estimator=model, step=step, cv=5, scoring=scoring)
     rfecv.fit(X_train, y_train)
     X_train_selected = rfecv.transform(X_train)
     X_test_selected = rfecv.transform(X_test)
@@ -83,6 +85,42 @@ def variance_inflation_factor_analysis(X, threshold=5):
     vif_data['feature'] = X.columns
     vif_data['VIF'] = [variance_inflation_factor(X.values, i) for i in range(len(X.columns))]
     return vif_data[vif_data['VIF'] < threshold]
+
+
+def analyze_model(model, X_train, X_test, y_train, y_test, generate_plots=0):
+    # predict y on the test data
+    y_pred = model.predict(X_test)
+
+    # evaluate model accuracy
+    accuracy_train = accuracy_score(y_train, model.predict(X_train))
+    accuarcy_test = accuracy_score(y_test, y_pred)
+    print(f"Train Accuracy: {accuracy_train:0.4}, Test Accuracy: {accuarcy_test:0.4}")
+
+    print("Classification Report:")
+    print(classification_report(y_test, y_pred))
+
+    if generate_plots:
+        print("Confusion Matrix:")
+        ConfusionMatrixDisplay.from_estimator(model, X_test, y_test, cmap=plt.cm.Blues)
+        plt.title("Confusion matrix")
+        plt.show()
+
+        # Display ROC Curve
+        RocCurveDisplay.from_estimator(model, X_test, y_test, name="Baseline Model")
+        plt.title("AUC-ROC Curve")
+        plt.plot([0, 1], [0, 1], linestyle="--", label="Random 50:50")
+        plt.legend()
+        plt.show()
+
+
+def build_base_model(X, y):
+    # Define a baseline model to benchmark against
+    model = Pipeline([
+        ('scaler', StandardScaler()),
+        ('classifier', SVC(kernel="rbf", C=1.0, gamma=0.1, random_state=42))
+    ])
+    model.fit(X, y)
+    return model
 
 
 def objective(trial, X, y):
@@ -158,12 +196,5 @@ if __name__ == "__main__":
     print("VIF selected features:", vif_data)
 
     X_train_selected, X_test_selected = X_train_rfecv, X_test_rfecv
-    best_pipeline, best_params = optimize_hyperparameters(X_train_selected, y_train, n_trials=100)
-
-    # Fit and evaluate the model on the test set
-    best_pipeline.fit(X_train_selected, y_train)
-    y_pred = best_pipeline.predict(X_test_selected)
-
-    print("Classification Report:")
-    print(classification_report(y_test, y_pred))
-    print("Accuracy:", accuracy_score(y_test, y_pred))
+    model = build_base_model(X_train_selected, y_train)
+    analyze_model(model, X_train_selected, X_test_selected, y_train, y_test, generate_plots=0)
