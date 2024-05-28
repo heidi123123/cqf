@@ -179,16 +179,14 @@ def optimize_hyperparameters(X_train, y_train, n_trials=100):
 
 
 def visualize_optimization(study):
-    optuna.visualization.plot_optimization_history(study)\
+    optuna.visualization.matplotlib.plot_optimization_history(study)\
         .update_layout(title="Optimization History of Hyperparameter Tuning for SVM")
-    optuna.visualization.plot_param_importances(study)\
+    optuna.visualization.matplotlib.plot_param_importances(study)\
         .update_layout(title="Hyperparameter Importances for SVM")
-    optuna.visualization.plot_slice(study)\
+    optuna.visualization.matplotlib.plot_slice(study)\
         .update_layout(title="Slice Plot of Hyperparameter Optimization for SVM")
-    optuna.visualization.plot_contour(study)\
+    optuna.visualization.matplotlib.plot_contour(study)\
         .update_layout(title="Contour Plot of Hyperparameter Optimization for SVM")
-    optuna.visualization.plot_parallel_coordinate(study)\
-        .update_layout(title="Parallel Coordinate Plot of Hyperparameter Optimization for SVM")
     plt.show()
 
 
