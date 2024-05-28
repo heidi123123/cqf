@@ -17902,6 +17902,15 @@ class="
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
 <h4 id="Conclusion">Conclusion<a class="anchor-link" href="#Conclusion">&#182;</a></h4><p>The results from the classification reports, confusion matrices and ROC curves indicate that while tuning the hyper-parameters of the SVM model has improved the training accuracy, the test accuracy and other performance metrics on the test set have not shown significant improvement and have, in some cases, even deteriorated slightly. In particular, the tuned model appears to be overfitting to the training data, as the accuracy gains do not translate well to the test set, indicating poor generalization to unseen data.</p>
 <p>The confusion matrix shows that both base and tuned model struggle with class imbalance. This is also visible from the classification report by exploring the imbalanced recall scores, implying that both models are biased towards class 1 (positive trend), while struggling to correctly identify class 0 (negative trend).</p>
+<p><strong>How could the model be improved potentially?</strong></p>
+<ul>
+<li>The class imbalance could be re-addressed by giving the class=0 more weight.</li>
+<li>Feature engineering could be improved, finding + adding more significant features for the trend prediction.</li>
+<li>Feature selection could be improved by employing more or other selection methods.</li>
+<li>Model selection from SVM could potentially be improved for another model that is more suitable for our data.</li>
+<li>Cross-validate more to ensure the model does not overfit.</li>
+<li>Hyper-parameter tuning could potentially be enhanced by exploring a wider range of hyper-parameters, different hyperparameter optimization techniques, or more extensive value ranges for the existing hyper-parameters.</li>
+</ul>
 
 </div>
 </div>
