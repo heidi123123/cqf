@@ -1,19 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import optuna
 import pandas as pd
 import seaborn as sns
 import yfinance as yf
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectKBest, f_classif, RFECV
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report, log_loss, confusion_matrix, ConfusionMatrixDisplay, \
+from sklearn.metrics import accuracy_score, classification_report, log_loss, ConfusionMatrixDisplay, \
     RocCurveDisplay
 from sklearn.model_selection import train_test_split, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.svm import SVC
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-import optuna
 
 
 # Prepare the data
@@ -124,48 +123,73 @@ def build_base_model(X, y):
 
 
 def objective(trial, X, y):
-    # define hyper-parameter space
-    scaler_name = trial.suggest_categorical('scaler', ['standard', 'minmax'])
-    C = trial.suggest_loguniform('C', 1e-4, 1e2)
-    gamma = trial.suggest_loguniform('gamma', 1e-4, 1e0)
-    kernel = trial.suggest_categorical('kernel', ['rbf', 'linear', 'sigmoid'])
+    # Define hyper-parameter space
+    scaler_name = trial.suggest_categorical('scaler', ["standard", "minmax"])
+    C = trial.suggest_loguniform("C", 1e-4, 1e2)
+    gamma = trial.suggest_loguniform("gamma", 1e-4, 1e0)
+    kernel = trial.suggest_categorical("kernel", ["rbf", "linear", "sigmoid"])
 
-    # create pipeline
-    pipeline = Pipeline([
-        ('scaler', StandardScaler() if scaler_name == 'standard' else MinMaxScaler()),
-        ('svm', SVC(C=C, gamma=gamma, kernel=kernel, probability=True))
+    # Create model as Pipeline
+    scaler = StandardScaler() if scaler_name == "standard" else MinMaxScaler()
+    model = Pipeline([
+        ("scaler", scaler),
+        ("svm", SVC(C=C, gamma=gamma, kernel=kernel, probability=True, random_state=42))
     ])
 
-    # define TimeSeriesSplit for CrossValidation
+    # Define TimeSeriesSplit for cross-validation
     tscv = TimeSeriesSplit(n_splits=5)
 
-    # use log-loss function for every TimeSeriesSplit to measure performance of hyper-params
+    # Use log-loss function for every TimeSeriesSplit to measure performance of hyper-parameters
     log_losses = []
     for train_idx, test_idx in tscv.split(X):
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
-        pipeline.fit(X_train, y_train)
-        preds = pipeline.predict_proba(X_test)
+        model.fit(X_train, y_train)
+        preds = model.predict_proba(X_test)
         log_losses.append(log_loss(y_test, preds))
+
+    # Return the negative mean log-loss for optimization
     return -1.0 * np.mean(log_losses)
 
 
 def optimize_hyperparameters(X_train, y_train, n_trials=100):
-    # study setup
+    # Convert pandas objects to numpy arrays
+    X_train = X_train.to_numpy() if isinstance(X_train, pd.DataFrame) else X_train
+    y_train = y_train.to_numpy() if isinstance(y_train, pd.Series) else y_train
+
+    # Study setup
     study = optuna.create_study(direction='maximize')
 
-    # optimization
+    # Optimization
     study.optimize(lambda trial: objective(trial, X_train, y_train), n_trials=n_trials)
     best_params = study.best_trial.params
-    print("Best Parameters:", best_params)
 
-    # create best pipeline
+    # Create best pipeline
     scaler = StandardScaler() if best_params['scaler'] == 'standard' else MinMaxScaler()
-    best_pipeline = Pipeline([
+    best_model = Pipeline([
         ('scaler', scaler),
-        ('svm', SVC(C=best_params['C'], gamma=best_params['gamma'], kernel=best_params['kernel'], probability=True))
+        ('svm', SVC(C=best_params['C'],
+                    gamma=best_params['gamma'],
+                    kernel=best_params['kernel'],
+                    probability=True,
+                    random_state=42))
     ])
-    return best_pipeline, best_params
+
+    return best_model, best_params, study
+
+
+def visualize_optimization(study):
+    optuna.visualization.plot_optimization_history(study)\
+        .update_layout(title="Optimization History of Hyperparameter Tuning for SVM")
+    optuna.visualization.plot_param_importances(study)\
+        .update_layout(title="Hyperparameter Importances for SVM")
+    optuna.visualization.plot_slice(study)\
+        .update_layout(title="Slice Plot of Hyperparameter Optimization for SVM")
+    optuna.visualization.plot_contour(study)\
+        .update_layout(title="Contour Plot of Hyperparameter Optimization for SVM")
+    optuna.visualization.plot_parallel_coordinate(study)\
+        .update_layout(title="Parallel Coordinate Plot of Hyperparameter Optimization for SVM")
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -190,11 +214,21 @@ if __name__ == "__main__":
     correlation_matrix_analysis(pd.DataFrame(X_train_rfecv, columns=selected_features_rfecv))
 
     # Variance Inflation Factor
-    vif_data = variance_inflation_factor_analysis(X_train)
+    vif_data = variance_inflation_factor_analysis(pd.DataFrame(X_train_rfecv, columns=selected_features_rfecv))
     selected_features_vif = vif_data['feature']
-    X_train_vif = X_train[selected_features_vif]
+    X_train_vif = pd.DataFrame(X_train_rfecv, columns=selected_features_rfecv)[selected_features_vif]
+    X_test_vif = pd.DataFrame(X_test_rfecv, columns=selected_features_rfecv)[selected_features_vif]
     print("VIF selected features:", vif_data)
 
-    X_train_selected, X_test_selected = X_train_rfecv, X_test_rfecv
-    model = build_base_model(X_train_selected, y_train)
-    analyze_model(model, X_train_selected, X_test_selected, y_train, y_test, generate_plots=0)
+    X_train_selected, X_test_selected = X_train_vif, X_test_vif
+
+    base_model = build_base_model(X_train_selected, y_train)
+    analyze_model(base_model, X_train_selected, X_test_selected, y_train, y_test, generate_plots=0)
+
+    # Optimize hyperparameters
+    best_model, best_params, study = optimize_hyperparameters(X_train_selected, y_train, n_trials=10)
+    print("Best hyperparameters found by Optuna:", best_params)
+    analyze_model(best_model, X_train_selected, X_test_selected, y_train, y_test, generate_plots=1)
+
+    # Visualization of Optuna study results
+    # visualize_optimization(study)
