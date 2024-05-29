@@ -122,18 +122,46 @@ def build_base_model(X, y):
     return model
 
 
-def objective(trial, X, y):
+# Define a mapping of class_weight options
+class_weight_options = [
+    None,
+    "balanced",
+    {0: 2, 1: 1},
+    {0: 1, 1: 2},
+    {0: 3, 1: 1},
+    {0: 1, 1: 3}
+]
+class_weight_mapping = {str(option): option for option in class_weight_options}
+
+
+def define_hyperparameters(trial):
     # Define hyper-parameter space
     scaler_name = trial.suggest_categorical('scaler', ["standard", "minmax"])
-    C = trial.suggest_loguniform("C", 1e-4, 1e2)
-    gamma = trial.suggest_loguniform("gamma", 1e-4, 1e0)
+    C = trial.suggest_loguniform("C", 0.0001, 100.0)
+    gamma = trial.suggest_loguniform("gamma", 0.0001, 1.0)
     kernel = trial.suggest_categorical("kernel", ["rbf", "linear", "sigmoid"])
+    class_weight_str = trial.suggest_categorical("class_weight",
+                                                 [str(option) for option in class_weight_options])
+    return {"scaler_name": scaler_name,
+            "C": C,
+            "gamma": gamma,
+            "kernel": kernel,
+            "class_weight_str": class_weight_str}
+
+
+def objective(trial, X, y):
+    # Get tunable hyperparameters + pipeline
+    hps = define_hyperparameters(trial)
 
     # Create model as Pipeline
-    scaler = StandardScaler() if scaler_name == "standard" else MinMaxScaler()
+    scaler = StandardScaler() if hps["scaler_name"] == "standard" else MinMaxScaler()
     model = Pipeline([
         ("scaler", scaler),
-        ("svm", SVC(C=C, gamma=gamma, kernel=kernel, probability=True, random_state=42))
+        ("svm", SVC(C=hps["C"],
+                    gamma=hps["gamma"],
+                    kernel=hps["kernel"],
+                    class_weight=class_weight_mapping[hps["class_weight_str"]],
+                    probability=True, random_state=42))
     ])
 
     # Define TimeSeriesSplit for cross-validation
@@ -164,6 +192,9 @@ def optimize_hyperparameters(X_train, y_train, n_trials=100):
     study.optimize(lambda trial: objective(trial, X_train, y_train), n_trials=n_trials)
     best_params = study.best_trial.params
 
+    # Convert the best class_weight parameter back to dictionary
+    best_params['class_weight'] = class_weight_mapping[best_params['class_weight']]
+
     # Create best pipeline
     scaler = StandardScaler() if best_params['scaler'] == 'standard' else MinMaxScaler()
     best_model = Pipeline([
@@ -171,10 +202,10 @@ def optimize_hyperparameters(X_train, y_train, n_trials=100):
         ('svm', SVC(C=best_params['C'],
                     gamma=best_params['gamma'],
                     kernel=best_params['kernel'],
+                    class_weight=best_params['class_weight'],
                     probability=True,
                     random_state=42))
     ])
-
     return best_model, best_params, study
 
 
