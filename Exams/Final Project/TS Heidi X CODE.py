@@ -4,12 +4,6 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
 
-import numpy as np
-import pandas as pd
-import yfinance as yf
-import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import adfuller
-
 
 def prepare_dataframe(ticker, start_date="2014-01-01"):
     df = yf.download(ticker, start=start_date)
@@ -118,5 +112,5 @@ analyze_cointegration("MAR", "IHG")
 # Exxon Mobil and Chevron
 analyze_cointegration("XOM", "CVX")
 
-# Gold commodity and Gold futures (example tickers)
+# Gold commodity and Gold futures
 analyze_cointegration("GC=F", "GLD")
