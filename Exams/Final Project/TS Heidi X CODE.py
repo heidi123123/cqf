@@ -1,3 +1,7 @@
+# Ignore warnings
+import warnings
+warnings.filterwarnings('ignore')
+
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -5,17 +9,17 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
 
 
-def prepare_dataframe(ticker, start_date="2014-01-01"):
+def download_data(ticker, start_date="2014-01-01"):
     df = yf.download(ticker, start=start_date)
-    df['Return'] = df['Close'].pct_change()
     df.dropna(inplace=True)
     return df
 
 
-def normalize_prices(data1, data2, label1, label2):
+def prepare_time_series(data1, data2, label1, label2, normalize):
     data = pd.concat([data1['Close'], data2['Close']], axis=1).dropna()
     data.columns = [label1, label2]
-    data = data / data.iloc[0]  # normalize prices
+    if normalize:
+        data = data / data.iloc[0]  # normalize prices
     return data
 
 
@@ -36,23 +40,24 @@ def least_sqrs_regression(data, label1, label2):
 def plot_assets_and_residuals(data, asset1_name, asset2_name):
     plt.figure(figsize=(12, 8))
 
-    # Plot normalized prices
+    # Plot prices
     plt.subplot(2, 1, 1)
-    plt.plot(data.index, data[asset1_name], label=f'{asset1_name} Normalized', color='blue')
-    plt.plot(data.index, data[asset2_name], label=f'{asset2_name} Normalized', color='orange')
-    plt.title(f"Normalized Prices of {asset1_name} and {asset2_name}")
+    plt.plot(data.index, data[asset1_name], label=f"{asset1_name}", color="blue")
+    plt.plot(data.index, data[asset2_name], label=f"{asset2_name}", color="orange")
+    plt.title(f"Historical Prices of {asset1_name} and {asset2_name}")
     plt.xlabel("Date")
-    plt.ylabel("Normalized Price")
+    plt.ylabel("Price")
     plt.legend()
     plt.grid(True)
 
     # Plot residuals
     plt.subplot(2, 1, 2)
-    plt.plot(data.index, data['residuals'], label='Residuals', color='green')
-    plt.axhline(data['residuals'].mean(), color='red', linestyle='--', label='Mean $\mu$')
-    plt.axhline(data['residuals'].mean() + 1.1 * data['residuals'].std(), color='purple', linestyle='--',
-                label='$1.1*\sigma$')
-    plt.axhline(data['residuals'].mean() - 1.1 * data['residuals'].std(), color='purple', linestyle='--')
+    plt.plot(data.index, data['residuals'], label="Residuals", color="green")
+    mean = data['residuals'].mean()
+    stdev = data['residuals'].std()
+    plt.axhline(mean, color="red", linestyle='--', label=f"Mean $\mu$")
+    plt.axhline(mean + 1.1 * stdev, color="purple", linestyle="--", label="$\pm1.1*\sigma$")
+    plt.axhline(mean - 1.1 * stdev, color="purple", linestyle="--")
     plt.title(f"Residuals of {asset1_name} and {asset2_name}")
     plt.xlabel("Date")
     plt.ylabel("Residuals")
@@ -63,7 +68,7 @@ def plot_assets_and_residuals(data, asset1_name, asset2_name):
     plt.show()
 
 
-def perform_adf_test(residuals, significance_level=0.01):
+def perform_adf_test(residuals, significance_level):
     adf_test = adfuller(residuals)
     adf_statistic, p_value = adf_test[0], adf_test[1]
 
@@ -80,13 +85,16 @@ def perform_adf_test(residuals, significance_level=0.01):
     return adf_test
 
 
-def analyze_cointegration(ticker1, ticker2, start_date="2014-01-01"):
-    # Prepare data
-    df1 = prepare_dataframe(ticker1, start_date)
-    df2 = prepare_dataframe(ticker2, start_date)
+def analyze_cointegration(ticker1, ticker2, start_date="2014-01-01", significance_level=0.05):
+    print(f"-" * 100)
+    print(f"Analyzing cointegration between {ticker1} and {ticker2}...")
 
-    # Normalize prices
-    data = normalize_prices(df1, df2, ticker1, ticker2)
+    # Download data
+    df1 = download_data(ticker1, start_date)
+    df2 = download_data(ticker2, start_date)
+
+    # Prepare prices
+    data = prepare_time_series(df1, df2, ticker1, ticker2, normalize=False)
 
     # Perform ordinary least square (OLS) regression
     data, beta = least_sqrs_regression(data, ticker1, ticker2)
@@ -95,22 +103,22 @@ def analyze_cointegration(ticker1, ticker2, start_date="2014-01-01"):
     plot_assets_and_residuals(data, ticker1, ticker2)
 
     # Perform ADF test
-    adf_test_result = perform_adf_test(data['residuals'])
+    adf_test_result = perform_adf_test(data['residuals'], significance_level)
     return data, beta, adf_test_result
 
 
 # Example usage
 # Coca-Cola and Pepsi
-analyze_cointegration("KO", "PEP")
+data, beta, adf_test_result = analyze_cointegration("KO", "PEP", significance_level=0.01)
 
 # Roche and Novartis
-analyze_cointegration("ROG.SW", "NOVN.SW", start_date="2022-01-01")
+data, beta, adf_test_result = analyze_cointegration("ROG.SW", "NOVN.SW", start_date="2022-01-01")
 
 # Marriott and InterContinental Hotels Group
-analyze_cointegration("MAR", "IHG")
+data, beta, adf_test_result = analyze_cointegration("MAR", "IHG")
 
 # Exxon Mobil and Chevron
-analyze_cointegration("XOM", "CVX")
+data, beta, adf_test_result = analyze_cointegration("XOM", "CVX")
 
 # Gold commodity and Gold futures
-analyze_cointegration("GC=F", "GLD")
+data, beta, adf_test_result = analyze_cointegration("GC=F", "GLD")
