@@ -130,11 +130,52 @@ def analyze_cointegration(ticker1, ticker2, plotting=False, start_date="2014-01-
     return data, beta, adf_test_result, ecm_results
 
 
+def backtest_strategy(data, ticker1, z):
+    # backtesting function to evaluate different Z values, e.g. bands of 1.5 stdev's from the equilibrium mean
+    mean_residual = data['residuals'].mean()
+    std_residual = data['residuals'].std()
+    upper_bound = mean_residual + z * std_residual
+    lower_bound = mean_residual - z * std_residual
+
+    position = 0  # 1 for long, -1 for short, 0 for no position
+    entry_price = 0
+    pnl = []
+
+    for index, row in data.iterrows():
+        residual = row['residuals']
+        if position == 0:
+            if residual > upper_bound:
+                position = -1  # Enter short
+                entry_price = row[ticker1]
+            elif residual < lower_bound:
+                position = 1  # Enter long
+                entry_price = row[ticker1]
+        elif position == 1:
+            if residual >= mean_residual or residual >= upper_bound:
+                pnl.append(row[ticker1] - entry_price)  # exit long
+                position = 0
+        elif position == -1:
+            if residual <= mean_residual or residual <= lower_bound:
+                pnl.append(entry_price - row[ticker1])  # exit short
+                position = 0
+    return np.sum(pnl)
+
+
+def analyze_mean_reversion(data, ticker1):
+    # Test different Z values and select the best one
+    results = []
+    for z in np.arange(0.5, 2.5, 0.1):
+        pnl = backtest_strategy(data, ticker1, z)
+        results.append({'Z': z, 'PnL': pnl})
+    return pd.DataFrame(results)
+
+
 # Example usages
 # Coca-Cola and Pepsi
 ticker1 = "KO"
 ticker2 = "PEP"
 data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
+pnl_table = analyze_mean_reversion(data, ticker1)
 
 # Roche and Novartis
 ticker1 = "ROG.SW"
