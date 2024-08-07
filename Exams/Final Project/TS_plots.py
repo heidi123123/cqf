@@ -34,8 +34,9 @@ def plot_assets_and_residuals(data, ticker1, ticker2):
 
 def compare_ecm_residuals(data, ecm_results):
     plt.figure(figsize=(15, 8))
+    # original residuals
     plt.plot(data.index, data['residuals'], label="Equilibrium residuals $u_t$", color="blue")
-    # Align indices for lagged epsilon residuals
+    # align indices for lagged ECM residuals
     plt.plot(data.index[1:], ecm_results['residuals'], label="ECM residuals $\epsilon_t$", color="orange")
     plt.axhline(0, color='black', linestyle='--')
     plt.title("Comparison of Residuals from Engle-Granger Method")
