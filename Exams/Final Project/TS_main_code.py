@@ -6,8 +6,8 @@ warnings.filterwarnings('ignore')
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
+from TS_plots import plot_assets_and_residuals
 
 
 def download_data(ticker, start_date="2014-01-01"):
@@ -36,45 +36,14 @@ def least_squares_regression(y, X):
     return beta, residuals
 
 
-def plot_assets_and_residuals(data, ticker1, ticker2):
-    plt.figure(figsize=(12, 8))
-
-    # price time series plot
-    plt.subplot(2, 1, 1)
-    plt.plot(data.index, data[ticker1], label=f"{ticker1}", color="blue")
-    plt.plot(data.index, data[ticker2], label=f"{ticker2}", color="orange")
-    plt.title(f"Historical Prices of {ticker1} and {ticker2}")
-    plt.xlabel("Date")
-    plt.ylabel("Price")
-    plt.legend()
-    plt.grid(True)
-
-    # residuals plot
-    plt.subplot(2, 1, 2)
-    plt.plot(data.index, data['residuals'], label="Residuals", color="green")
-    mean = data['residuals'].mean()
-    stdev = data['residuals'].std()
-    plt.axhline(mean, color="red", linestyle='--', label=f"Mean $\mu$")
-    plt.axhline(mean + 1.1 * stdev, color="purple", linestyle="--", label="$\pm1.1*\sigma$")
-    plt.axhline(mean - 1.1 * stdev, color="purple", linestyle="--")
-    plt.title(f"Residuals of {ticker1} and {ticker2}")
-    plt.xlabel("Date")
-    plt.ylabel("Residuals")
-    plt.legend()
-    plt.grid(True)
-
-    plt.tight_layout()
-    plt.show()
-
-
 def perform_adf_test(residuals, significance_level):
     # Augmented Dickey-Fuller (ADF) test to check for the presence of unit root in a time series
     # H0: time series has a unit root (i.e. non-stationary)
     adf_test = adfuller(residuals)
     adf_statistic, p_value = adf_test[0], adf_test[1]
 
-    print(f"ADF Statistic: {adf_statistic}")
-    print(f"p-value: {p_value}")
+    print(f"ADF Statistic: {adf_statistic:2f}")
+    print(f"p-value: {p_value:2f}")
 
     if p_value < significance_level:
         print(f"The residuals are stationary (reject null hypothesis) "
@@ -157,9 +126,7 @@ def analyze_cointegration(ticker1, ticker2, plotting=False, start_date="2014-01-
     data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_level)
     # Engle-Granger procedure - Step 2: ECM
     ecm_results = fit_ecm(data, "residuals", ticker1, ticker2)
-    print("ECM Coefficients:", ecm_results['coefficients'])
-    print("ECM Residuals:", ecm_results['residuals'].head())
-
+    print(f"Equilibrium mean-reversion coefficient: {ecm_results['coefficients'][-1]:2f}")
     return data, beta, adf_test_result, ecm_results
 
 
