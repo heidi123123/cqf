@@ -112,18 +112,28 @@ def analyze_cointegration(ticker1, ticker2, start_date="2014-01-01", significanc
     return data, beta, adf_test_result
 
 
-# Example usage
+# Example usages
 # Coca-Cola and Pepsi
-data, beta, adf_test_result = analyze_cointegration("KO", "PEP", significance_level=0.01)
+ticker1 = "KO"
+ticker2 = "PEP"
+data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
 
 # Roche and Novartis
-data, beta, adf_test_result = analyze_cointegration("ROG.SW", "NOVN.SW", start_date="2022-01-01")
+ticker1 = "ROG.SW"
+ticker2 = "NOVN.SW"
+data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2, start_date="2022-01-01")
 
 # Marriott and InterContinental Hotels Group
-data, beta, adf_test_result = analyze_cointegration("MAR", "IHG")
+ticker1 = "MAR"
+ticker2 = "IHG"
+data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2)
 
 # Exxon Mobil and Chevron
-data, beta, adf_test_result = analyze_cointegration("XOM", "CVX")
+ticker1 = "XOM"
+ticker2 = "CVX"
+data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2)
 
 # Gold commodity and Gold futures
-data, beta, adf_test_result = analyze_cointegration("GC=F", "GLD")
+ticker1 = "GLD"
+ticker2 = "GC=F"
+data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2)
