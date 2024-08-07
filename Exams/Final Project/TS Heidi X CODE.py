@@ -86,7 +86,23 @@ def perform_adf_test(residuals, significance_level):
     return adf_test
 
 
-def analyze_cointegration(ticker1, ticker2, start_date="2014-01-01", significance_level=0.05):
+def perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_level):
+    # Perform ordinary least square (OLS) regression
+    y = data[ticker1].values
+    X = data[ticker2].values.reshape(-1, 1)
+    beta, residuals = least_squares_regression(y, X)
+    data['residuals'] = residuals
+
+    if plotting:
+        # Plot residuals
+        plot_assets_and_residuals(data, ticker1, ticker2)
+
+    # Perform ADF test
+    adf_test_result = perform_adf_test(data['residuals'], significance_level)
+    return data, beta, adf_test_result
+
+
+def analyze_cointegration(ticker1, ticker2, plotting=False, start_date="2014-01-01", significance_level=0.05):
     print(f"-" * 100)
     print(f"Analyzing cointegration between {ticker1} and {ticker2}...")
 
@@ -97,18 +113,8 @@ def analyze_cointegration(ticker1, ticker2, start_date="2014-01-01", significanc
     # Prepare prices
     data = prepare_time_series(df1, df2, ticker1, ticker2, normalize=False)
 
-    # Perform ordinary least square (OLS) regression
-    y = data[ticker1].values
-    X = data[ticker2].values.reshape(-1, 1)
-    beta, residuals = least_squares_regression(y, X)
-    data['residuals'] = residuals
-
-    # Plot residuals
-    plot_assets_and_residuals(data, ticker1, ticker2)
-
-    # Perform ADF test
-    adf_test_result = perform_adf_test(data['residuals'], significance_level)
-
+    # Engle-Granger procedure - Step 1
+    data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_level)
     return data, beta, adf_test_result
 
 
