@@ -143,3 +143,13 @@ data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2)
 ticker1 = "GLD"
 ticker2 = "GC=F"
 data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2)
+
+# Apple and Microsoft - starting analysis 2014
+ticker1 = "AAPL"
+ticker2 = "MSFT"
+data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2, plotting=True)
+
+# Apple and Microsoft - starting analysis 2022
+ticker1 = "AAPL"
+ticker2 = "MSFT"
+data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2, plotting=True, start_date="2022-01-01")
