@@ -1,5 +1,6 @@
 # Ignore warnings
 import warnings
+
 warnings.filterwarnings('ignore')
 
 import numpy as np
@@ -10,6 +11,7 @@ from statsmodels.tsa.stattools import adfuller
 
 
 def download_data(ticker, start_date="2014-01-01"):
+    # download ticker data from yfinance library
     df = yf.download(ticker, start=start_date)
     df.dropna(inplace=True)
     return df
@@ -23,24 +25,20 @@ def prepare_time_series(data1, data2, label1, label2, normalize):
     return data
 
 
-def least_sqrs_regression(data, label1, label2):
-    # Extracting data and adding a constant term
-    y = data[label1].values
-    X = data[label2].values
-    X = np.vstack([np.ones(len(X)), X]).T  # add a constant term
+def least_squares_regression(y, X):
+    X = np.hstack([np.ones((X.shape[0], 1)), X])  # add y-intercept to X
+    beta = np.linalg.inv(X.T @ X) @ (X.T @ y)  # least sqaures regression into coefficient vector beta
 
-    # Perform the least squares regression using the normal equation
-    beta = np.linalg.inv(X.T @ X) @ (X.T @ y)
-
-    # Calculate residuals
-    data['residuals'] = y - (beta[0] + beta[1] * data[label2])
-    return data, beta
+    # calculate residuals
+    y_pred = X @ beta
+    residuals = y - y_pred
+    return beta, residuals
 
 
 def plot_assets_and_residuals(data, asset1_name, asset2_name):
     plt.figure(figsize=(12, 8))
 
-    # Plot prices
+    # price time series plot
     plt.subplot(2, 1, 1)
     plt.plot(data.index, data[asset1_name], label=f"{asset1_name}", color="blue")
     plt.plot(data.index, data[asset2_name], label=f"{asset2_name}", color="orange")
@@ -50,7 +48,7 @@ def plot_assets_and_residuals(data, asset1_name, asset2_name):
     plt.legend()
     plt.grid(True)
 
-    # Plot residuals
+    # residuals plot
     plt.subplot(2, 1, 2)
     plt.plot(data.index, data['residuals'], label="Residuals", color="green")
     mean = data['residuals'].mean()
@@ -69,6 +67,9 @@ def plot_assets_and_residuals(data, asset1_name, asset2_name):
 
 
 def perform_adf_test(residuals, significance_level):
+    # Augmented Dickey-Fuller (ADF) test to check for the presence of unit root in a time series
+    # H0: time series has a unit root (i.e. non-stationary)
+
     adf_test = adfuller(residuals)
     adf_statistic, p_value = adf_test[0], adf_test[1]
 
@@ -97,13 +98,17 @@ def analyze_cointegration(ticker1, ticker2, start_date="2014-01-01", significanc
     data = prepare_time_series(df1, df2, ticker1, ticker2, normalize=False)
 
     # Perform ordinary least square (OLS) regression
-    data, beta = least_sqrs_regression(data, ticker1, ticker2)
+    y = data[ticker1].values
+    X = data[ticker2].values.reshape(-1, 1)
+    beta, residuals = least_squares_regression(y, X)
+    data['residuals'] = residuals
 
     # Plot residuals
     plot_assets_and_residuals(data, ticker1, ticker2)
 
     # Perform ADF test
     adf_test_result = perform_adf_test(data['residuals'], significance_level)
+
     return data, beta, adf_test_result
 
 
