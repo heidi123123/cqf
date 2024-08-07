@@ -18,6 +18,7 @@ def download_data(ticker, start_date="2014-01-01"):
 
 
 def prepare_time_series(data1, data2, label1, label2, normalize):
+    # combine both time series from data1 and data2 into a new pandas dataframe
     data = pd.concat([data1['Close'], data2['Close']], axis=1).dropna()
     data.columns = [label1, label2]
     if normalize:
@@ -69,7 +70,6 @@ def plot_assets_and_residuals(data, asset1_name, asset2_name):
 def perform_adf_test(residuals, significance_level):
     # Augmented Dickey-Fuller (ADF) test to check for the presence of unit root in a time series
     # H0: time series has a unit root (i.e. non-stationary)
-
     adf_test = adfuller(residuals)
     adf_statistic, p_value = adf_test[0], adf_test[1]
 
@@ -87,7 +87,7 @@ def perform_adf_test(residuals, significance_level):
 
 
 def perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_level):
-    # Perform ordinary least square (OLS) regression
+    # OLS regression to obtain regression coefficients beta & residuals
     y = data[ticker1].values
     X = data[ticker2].values.reshape(-1, 1)
     beta, residuals = least_squares_regression(y, X)
@@ -100,6 +100,47 @@ def perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_l
     # Perform ADF test
     adf_test_result = perform_adf_test(data['residuals'], significance_level)
     return data, beta, adf_test_result
+
+
+def calculate_first_differences(data, columns):
+    """
+    Calculate the first differences for the specified columns in the dataframe.
+
+    Parameters:
+    - data: pd.DataFrame, the original time series data.
+    - columns: list, the columns for which to calculate first differences.
+
+    Returns:
+    - data_diff: pd.DataFrame, the first differences of the specified columns.
+    """
+    return data[columns].diff().dropna()
+
+
+def fit_ecm(data, residuals_column, target_column, independent_column):
+    """
+    Fit the Equilibrium Correction Model (ECM).
+
+    Parameters:
+    - data: pd.DataFrame, the original time series data including residuals.
+    - residuals_column: str, the column name for residuals.
+    - target_column: str, the dependent variable.
+    - independent_column: str, the independent variable.
+
+    Returns:
+    - ecm_results: dict, the coefficients and residuals of the ECM.
+    """
+    data_diff = calculate_first_differences(data, [target_column, independent_column])
+    data_diff['lagged_residuals'] = data[residuals_column].shift(1)  # lag the residuals
+
+    data_diff = data_diff.dropna()
+
+    # OLS to obtain ECM coefficients & residuals
+    y = data_diff[target_column].values
+    X = data_diff[[independent_column, "lagged_residuals"]].values
+    ecm_coefficients, ecm_residuals = least_squares_regression(y, X)
+
+    ecm_residuals = pd.DataFrame(ecm_residuals, index=data_diff.index, columns=["ECM_residuals"])  # convert to pd.df
+    return {'coefficients': ecm_coefficients, 'residuals': ecm_residuals}
 
 
 def analyze_cointegration(ticker1, ticker2, plotting=False, start_date="2014-01-01", significance_level=0.05):
@@ -115,41 +156,46 @@ def analyze_cointegration(ticker1, ticker2, plotting=False, start_date="2014-01-
 
     # Engle-Granger procedure - Step 1
     data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_level)
-    return data, beta, adf_test_result
+    # Engle-Granger procedure - Step 2: ECM
+    ecm_results = fit_ecm(data, "residuals", ticker1, ticker2)
+    print("ECM Coefficients:", ecm_results['coefficients'])
+    print("ECM Residuals:", ecm_results['residuals'].head())
+
+    return data, beta, adf_test_result, ecm_results
 
 
 # Example usages
 # Coca-Cola and Pepsi
 ticker1 = "KO"
 ticker2 = "PEP"
-data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
+data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
 
 # Roche and Novartis
 ticker1 = "ROG.SW"
 ticker2 = "NOVN.SW"
-data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2, start_date="2022-01-01")
+data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, start_date="2022-01-01")
 
 # Marriott and InterContinental Hotels Group
 ticker1 = "MAR"
 ticker2 = "IHG"
-data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2)
+data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2)
 
 # Exxon Mobil and Chevron
 ticker1 = "XOM"
 ticker2 = "CVX"
-data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2)
+data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2)
 
 # Gold commodity and Gold futures
 ticker1 = "GLD"
 ticker2 = "GC=F"
-data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2)
+data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2)
 
 # Apple and Microsoft - starting analysis 2014
 ticker1 = "AAPL"
 ticker2 = "MSFT"
-data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2, plotting=True)
+data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, plotting=True)
 
 # Apple and Microsoft - starting analysis 2022
 ticker1 = "AAPL"
 ticker2 = "MSFT"
-data, beta, adf_test_result = analyze_cointegration(ticker1, ticker2, plotting=True, start_date="2022-01-01")
+data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, plotting=True, start_date="2022-01-01")
