@@ -36,14 +36,14 @@ def least_squares_regression(y, X):
     return beta, residuals
 
 
-def plot_assets_and_residuals(data, asset1_name, asset2_name):
+def plot_assets_and_residuals(data, ticker1, ticker2):
     plt.figure(figsize=(12, 8))
 
     # price time series plot
     plt.subplot(2, 1, 1)
-    plt.plot(data.index, data[asset1_name], label=f"{asset1_name}", color="blue")
-    plt.plot(data.index, data[asset2_name], label=f"{asset2_name}", color="orange")
-    plt.title(f"Historical Prices of {asset1_name} and {asset2_name}")
+    plt.plot(data.index, data[ticker1], label=f"{ticker1}", color="blue")
+    plt.plot(data.index, data[ticker2], label=f"{ticker2}", color="orange")
+    plt.title(f"Historical Prices of {ticker1} and {ticker2}")
     plt.xlabel("Date")
     plt.ylabel("Price")
     plt.legend()
@@ -57,7 +57,7 @@ def plot_assets_and_residuals(data, asset1_name, asset2_name):
     plt.axhline(mean, color="red", linestyle='--', label=f"Mean $\mu$")
     plt.axhline(mean + 1.1 * stdev, color="purple", linestyle="--", label="$\pm1.1*\sigma$")
     plt.axhline(mean - 1.1 * stdev, color="purple", linestyle="--")
-    plt.title(f"Residuals of {asset1_name} and {asset2_name}")
+    plt.title(f"Residuals of {ticker1} and {ticker2}")
     plt.xlabel("Date")
     plt.ylabel("Residuals")
     plt.legend()
@@ -82,7 +82,6 @@ def perform_adf_test(residuals, significance_level):
     else:
         print(f"The residuals are not stationary (accept null hypothesis) "
               f"at the {significance_level * 100}% significance level.")
-
     return adf_test
 
 
@@ -102,16 +101,16 @@ def perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_l
     return data, beta, adf_test_result
 
 
-def calculate_first_differences(data, columns):
+def get_differences(data, columns):
     """
-    Calculate the first differences for the specified columns in the dataframe.
+    Calculate the returns (differences) Delta y_t = y_t-y_{t-1} for the specified columns in the dataframe.
 
     Parameters:
-    - data: pd.DataFrame, the original time series data.
-    - columns: list, the columns for which to calculate first differences.
+    - data: pd.DataFrame, the original time series data
+    - columns: list, the columns for which to calculate differences
 
     Returns:
-    - data_diff: pd.DataFrame, the first differences of the specified columns.
+    - data_diff: pd.DataFrame, the differences of the specified columns
     """
     return data[columns].diff().dropna()
 
@@ -121,25 +120,25 @@ def fit_ecm(data, residuals_column, target_column, independent_column):
     Fit the Equilibrium Correction Model (ECM).
 
     Parameters:
-    - data: pd.DataFrame, the original time series data including residuals.
-    - residuals_column: str, the column name for residuals.
-    - target_column: str, the dependent variable.
-    - independent_column: str, the independent variable.
+    - data: pd.DataFrame, the original time series data including residuals
+    - residuals_column: str, the column name for residuals
+    - target_column: str, the dependent variable
+    - independent_column: str, the independent variable
 
     Returns:
     - ecm_results: dict, the coefficients and residuals of the ECM.
     """
-    data_diff = calculate_first_differences(data, [target_column, independent_column])
-    data_diff['lagged_residuals'] = data[residuals_column].shift(1)  # lag the residuals
+    data_delta = get_differences(data, [target_column, independent_column])
+    data_delta['lagged_residuals'] = data[residuals_column].shift(1)  # lag the residuals
 
-    data_diff = data_diff.dropna()
+    data_delta = data_delta.dropna()
 
     # OLS to obtain ECM coefficients & residuals
-    y = data_diff[target_column].values
-    X = data_diff[[independent_column, "lagged_residuals"]].values
+    y = data_delta[target_column].values
+    X = data_delta[[independent_column, "lagged_residuals"]].values
     ecm_coefficients, ecm_residuals = least_squares_regression(y, X)
 
-    ecm_residuals = pd.DataFrame(ecm_residuals, index=data_diff.index, columns=["ECM_residuals"])  # convert to pd.df
+    ecm_residuals = pd.DataFrame(ecm_residuals, index=data_delta.index, columns=["ECM_residuals"])  # convert to pd.df
     return {'coefficients': ecm_coefficients, 'residuals': ecm_residuals}
 
 
