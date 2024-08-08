@@ -1,25 +1,31 @@
 import matplotlib.pyplot as plt
 
 
-def plot_assets_and_residuals(data, ticker1, ticker2):
-    plt.figure(figsize=(12, 8))
+def plot_assets_and_residuals(data, ticker1, ticker2, index_ticker):
+    plt.figure(figsize=(10, 10))
 
-    # price time series plot
+    # normalize historical prices
+    normalized_ticker1 = data[ticker1] / data[ticker1].iloc[0]
+    normalized_ticker2 = data[ticker2] / data[ticker2].iloc[0]
+    normalized_index = data[index_ticker] / data[index_ticker].iloc[0]
+
+    # plot normalized prices
     plt.subplot(2, 1, 1)
-    plt.plot(data.index, data[ticker1], label=f"{ticker1}", color="blue")
-    plt.plot(data.index, data[ticker2], label=f"{ticker2}", color="orange")
-    plt.title(f"Historical Prices of {ticker1} and {ticker2}")
+    plt.plot(data.index, normalized_ticker1, label=f"{ticker1} (normalized)", color="b")
+    plt.plot(data.index, normalized_ticker2, label=f"{ticker2} (normalized)", color="g")
+    plt.plot(data.index, normalized_index, label=f"{index_ticker} (normalized)", color="r")
+    plt.title(f"Normalized historical prices of {ticker1}, {ticker2}, and {index_ticker} index")
     plt.xlabel("Date")
-    plt.ylabel("Price")
+    plt.ylabel("Normalized Price")
     plt.legend()
     plt.grid(True)
 
-    # residuals plot
+    # plot residuals
     plt.subplot(2, 1, 2)
-    plt.plot(data.index, data['residuals'], label="Residuals", color="green")
+    plt.plot(data.index, data['residuals'], label="Residuals")
     mean = data['residuals'].mean()
     stdev = data['residuals'].std()
-    plt.axhline(mean, color="red", linestyle='--', label=f"Mean $\mu$")
+    plt.axhline(mean, color="r", linestyle="--", label=f"Mean $\mu$")
     plt.axhline(mean + 1.1 * stdev, color="purple", linestyle="--", label="$\pm1.1*\sigma$")
     plt.axhline(mean - 1.1 * stdev, color="purple", linestyle="--")
     plt.title(f"Residuals of {ticker1} and {ticker2}")
@@ -38,7 +44,7 @@ def compare_ecm_residuals(data, ecm_results):
     plt.plot(data.index, data['residuals'], label="Equilibrium residuals $u_t$", color="blue")
     # align indices for lagged ECM residuals
     plt.plot(data.index[1:], ecm_results['residuals'], label="ECM residuals $\epsilon_t$", color="orange")
-    plt.axhline(0, color='black', linestyle='--')
+    plt.axhline(0, color="black", linestyle="--")
     plt.title("Comparison of Residuals from Engle-Granger Method")
     plt.xlabel("Date")
     plt.ylabel("Residuals")

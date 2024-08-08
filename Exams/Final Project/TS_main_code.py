@@ -17,12 +17,20 @@ def download_data(ticker, start_date="2014-01-01"):
     return df
 
 
-def prepare_time_series(data1, data2, label1, label2, normalize):
-    # combine both time series from data1 and data2 into a new pandas dataframe
-    data = pd.concat([data1['Close'], data2['Close']], axis=1).dropna()
-    data.columns = [label1, label2]
-    if normalize:
-        data = data / data.iloc[0]  # normalize prices
+def prepare_time_series(data1, data2, ticker1, ticker2, index_ticker):
+    # download index data
+    index_data = download_data(index_ticker)
+
+    # among the 3 dataframes: determine latest start date and trim all dataframes to start there
+    latest_start_date = max(data1.index.min(), data2.index.min(), index_data.index.min())
+    data1 = data1[data1.index >= latest_start_date]
+    data2 = data2[data2.index >= latest_start_date]
+    index_data = index_data[index_data.index >= latest_start_date]
+
+    # combine the 3 trimmed dataframes into 1
+    data = pd.concat([data1['Close'], data2['Close'], index_data['Close']], axis=1).dropna()
+
+    data.columns = [ticker1, ticker2, index_ticker]
     return data
 
 
@@ -54,7 +62,7 @@ def perform_adf_test(residuals, significance_level):
     return adf_test
 
 
-def perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_level):
+def perform_engle_granger_step1(ticker1, ticker2, index_ticker, data, plotting, significance_level):
     # OLS regression to obtain regression coefficients beta & residuals
     y = data[ticker1].values
     X = data[ticker2].values.reshape(-1, 1)
@@ -63,7 +71,7 @@ def perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_l
 
     if plotting:
         # Plot residuals
-        plot_assets_and_residuals(data, ticker1, ticker2)
+        plot_assets_and_residuals(data, ticker1, ticker2, index_ticker)
 
     # Perform ADF test
     adf_test_result = perform_adf_test(data['residuals'], significance_level)
@@ -111,19 +119,21 @@ def fit_ecm(data, residuals_column, target_column, independent_column):
     return {'coefficients': ecm_coefficients, 'residuals': ecm_residuals}
 
 
-def analyze_cointegration(ticker1, ticker2, plotting=False, start_date="2014-01-01", significance_level=0.05):
+def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
+                          plotting=False, start_date="2014-01-01", significance_level=0.05):
     print(f"-" * 100)
     print(f"Analyzing cointegration between {ticker1} and {ticker2}...")
 
-    # Download data
+    # download data
     df1 = download_data(ticker1, start_date)
     df2 = download_data(ticker2, start_date)
 
-    # Prepare prices
-    data = prepare_time_series(df1, df2, ticker1, ticker2, normalize=False)
+    # prepare prices
+    data = prepare_time_series(df1, df2, ticker1, ticker2, index_ticker)
 
     # Engle-Granger procedure - Step 1
-    data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, data, plotting, significance_level)
+    data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, index_ticker,
+                                                              data, plotting, significance_level)
     # Engle-Granger procedure - Step 2: ECM
     ecm_results = fit_ecm(data, "residuals", ticker1, ticker2)
     print(f"Equilibrium mean-reversion coefficient: {ecm_results['coefficients'][-1]:2f}")
@@ -194,7 +204,8 @@ pnl_table = evaluate_pairs_trading_strategy(data, ticker1, ticker2)
 # Roche and Novartis
 ticker1 = "ROG.SW"
 ticker2 = "NOVN.SW"
-data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, start_date="2022-01-01")
+data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, index_ticker="^SSMI",
+                                                                 plotting=True, start_date="2022-01-01")
 
 # Marriott and InterContinental Hotels Group
 ticker1 = "MAR"
