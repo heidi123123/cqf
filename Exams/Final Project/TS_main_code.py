@@ -130,52 +130,66 @@ def analyze_cointegration(ticker1, ticker2, plotting=False, start_date="2014-01-
     return data, beta, adf_test_result, ecm_results
 
 
-def backtest_strategy(data, ticker1, z):
-    # backtesting function to evaluate different Z values, e.g. bands of 1.5 stdev's from the equilibrium mean
+def backtest_strategy(data, ticker1, ticker2, z):
     mean_residual = data['residuals'].mean()
     std_residual = data['residuals'].std()
     upper_bound = mean_residual + z * std_residual
     lower_bound = mean_residual - z * std_residual
 
-    position = 0  # 1 for long, -1 for short, 0 for no position
-    entry_price = 0
+    # Position Management explanation:
+    # position = 1: long, position = -1: short, position = 0: flat
+    position_ticker1 = 0
+    position_ticker2 = 0
+    entry_price_ticker1 = 0
+    entry_price_ticker2 = 0
     pnl = []
 
     for index, row in data.iterrows():
         residual = row['residuals']
-        if position == 0:
-            if residual > upper_bound:
-                position = -1  # Enter short
-                entry_price = row[ticker1]
-            elif residual < lower_bound:
-                position = 1  # Enter long
-                entry_price = row[ticker1]
-        elif position == 1:
-            if residual >= mean_residual or residual >= upper_bound:
-                pnl.append(row[ticker1] - entry_price)  # exit long
-                position = 0
-        elif position == -1:
-            if residual <= mean_residual or residual <= lower_bound:
-                pnl.append(entry_price - row[ticker1])  # exit short
-                position = 0
+
+        if position_ticker1 == 0 and position_ticker2 == 0:
+            if residual > upper_bound:  # spread between both tickers is very positive
+                position_ticker1 = -1  # short ticker1 since over-valued from equilibrium
+                position_ticker2 = 1  # long ticker2 since under-valued from equilibrium
+                entry_price_ticker1 = row[ticker1]
+                entry_price_ticker2 = row[ticker2]
+            elif residual < lower_bound:  # spread between both tickers is very negative
+                position_ticker1 = 1
+                position_ticker2 = -1
+                entry_price_ticker1 = row[ticker1]
+                entry_price_ticker2 = row[ticker2]
+
+        elif position_ticker1 == 1 and position_ticker2 == -1:  # Long ticker1, Short ticker2
+            if residual >= mean_residual:
+                pnl.append(
+                    (row[ticker1] - entry_price_ticker1) + (entry_price_ticker2 - row[ticker2]))  # Close positions
+                position_ticker1 = 0
+                position_ticker2 = 0
+
+        elif position_ticker1 == -1 and position_ticker2 == 1:  # Short ticker1, Long ticker2
+            if residual <= mean_residual:
+                pnl.append(
+                    (entry_price_ticker1 - row[ticker1]) + (row[ticker2] - entry_price_ticker2))  # Close positions
+                position_ticker1 = 0
+                position_ticker2 = 0
+
     return np.sum(pnl)
 
 
-def analyze_mean_reversion(data, ticker1):
+def analyze_mean_reversion(data, ticker1, ticker2):
     # Test different Z values and select the best one
     results = []
     for z in np.arange(0.5, 2.5, 0.1):
-        pnl = backtest_strategy(data, ticker1, z)
+        pnl = backtest_strategy(data, ticker1, ticker2, z)
         results.append({'Z': z, 'PnL': pnl})
     return pd.DataFrame(results)
-
 
 # Example usages
 # Coca-Cola and Pepsi
 ticker1 = "KO"
 ticker2 = "PEP"
 data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
-pnl_table = analyze_mean_reversion(data, ticker1)
+pnl_table = analyze_mean_reversion(data, ticker1, ticker2)
 
 # Roche and Novartis
 ticker1 = "ROG.SW"
