@@ -11,15 +11,15 @@ from TS_plots import plot_assets_and_residuals
 
 
 def download_data(ticker, start_date="2014-01-01"):
-    # download ticker data from yfinance library
+    """Download ticker data from yfinance library."""
     df = yf.download(ticker, start=start_date)
     df.dropna(inplace=True)
     return df
 
 
 def prepare_time_series(data1, data2, ticker1, ticker2, index_ticker):
-    # download index data
-    index_data = download_data(index_ticker)
+    """Prepare the time series data of historical prices to use later for cointegration analysis."""
+    index_data = download_data(index_ticker)  # download index data
 
     # among the 3 dataframes: determine latest start date and trim all dataframes to start there
     latest_start_date = max(data1.index.min(), data2.index.min(), index_data.index.min())
@@ -29,29 +29,26 @@ def prepare_time_series(data1, data2, ticker1, ticker2, index_ticker):
 
     # combine the 3 trimmed dataframes into 1
     data = pd.concat([data1['Close'], data2['Close'], index_data['Close']], axis=1).dropna()
-
     data.columns = [ticker1, ticker2, index_ticker]
     return data
 
 
 def least_squares_regression(y, X):
+    """Perform least squares regression to obtain beta coefficients and residuals."""
     X = np.hstack([np.ones((X.shape[0], 1)), X])  # add y-intercept to X
     beta = np.linalg.inv(X.T @ X) @ (X.T @ y)  # least sqaures regression into coefficient vector beta
-
-    # calculate residuals
-    y_pred = X @ beta
-    residuals = y - y_pred
+    residuals = y - X @ beta
     return beta, residuals
 
 
 def perform_adf_test(residuals, significance_level):
-    # Augmented Dickey-Fuller (ADF) test to check for the presence of unit root in a time series
-    # H0: time series has a unit root (i.e. non-stationary)
+    """Perform the Augmented Dickey-Fuller (ADF) test to check for the presence of unit root in a time series.
+    H0: time series has a unit root (i.e. non-stationary)"""
     adf_test = adfuller(residuals)
     adf_statistic, p_value = adf_test[0], adf_test[1]
 
-    print(f"ADF Statistic: {adf_statistic:2f}")
-    print(f"p-value: {p_value:2f}")
+    print(f"ADF Statistic: {adf_statistic:.2f}")
+    print(f"p-value: {p_value:.2f}")
 
     if p_value < significance_level:
         print(f"The residuals are stationary (reject null hypothesis) "
@@ -63,51 +60,30 @@ def perform_adf_test(residuals, significance_level):
 
 
 def perform_engle_granger_step1(ticker1, ticker2, index_ticker, data, plotting, significance_level):
+    """Step1 of the Engle-Granger procedure."""
+
     # OLS regression to obtain regression coefficients beta & residuals
     y = data[ticker1].values
     X = data[ticker2].values.reshape(-1, 1)
     beta, residuals = least_squares_regression(y, X)
     data['residuals'] = residuals
 
-    if plotting:
-        # Plot residuals
+    if plotting:  # plot normalized asset prices and residuals
         plot_assets_and_residuals(data, ticker1, ticker2, index_ticker)
 
-    # Perform ADF test
+    # perform ADF test
     adf_test_result = perform_adf_test(data['residuals'], significance_level)
     return data, beta, adf_test_result
 
 
 def get_differences(data, columns):
-    """
-    Calculate the returns (differences) Delta y_t = y_t-y_{t-1} for the specified columns in the dataframe.
-
-    Parameters:
-    - data: pd.DataFrame, the original time series data
-    - columns: list, the columns for which to calculate differences
-
-    Returns:
-    - data_diff: pd.DataFrame, the differences of the specified columns
-    """
+    """Calculate the returns (differences) Delta y_t = y_t-y_{t-1} for the specified columns in the dataframe."""
     return data[columns].diff().dropna()
 
-
 def fit_ecm(data, residuals_column, target_column, independent_column):
-    """
-    Fit the Equilibrium Correction Model (ECM).
-
-    Parameters:
-    - data: pd.DataFrame, the original time series data including residuals
-    - residuals_column: str, the column name for residuals
-    - target_column: str, the dependent variable
-    - independent_column: str, the independent variable
-
-    Returns:
-    - ecm_results: dict, the coefficients and residuals of the ECM.
-    """
+    """Step2 of the Engle-Granger procedure: fit the Equilibrium Correction Model (ECM)."""
     data_delta = get_differences(data, [target_column, independent_column])
     data_delta['lagged_residuals'] = data[residuals_column].shift(1)  # lag the residuals
-
     data_delta = data_delta.dropna()
 
     # OLS to obtain ECM coefficients & residuals
@@ -121,14 +97,12 @@ def fit_ecm(data, residuals_column, target_column, independent_column):
 
 def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
                           plotting=False, start_date="2014-01-01", significance_level=0.05):
+    """Analyze cointegration between two assets ticker1 & ticker2 after start_date <YYYY-MM-DD>."""
     print(f"-" * 100)
     print(f"Analyzing cointegration between {ticker1} and {ticker2}...")
 
-    # download data
     df1 = download_data(ticker1, start_date)
     df2 = download_data(ticker2, start_date)
-
-    # prepare prices
     data = prepare_time_series(df1, df2, ticker1, ticker2, index_ticker)
 
     # Engle-Granger procedure - Step 1
@@ -194,6 +168,7 @@ def evaluate_pairs_trading_strategy(data, ticker1, ticker2):
         results.append({'Z': z, 'PnL': pnl})
     return pd.DataFrame(results)
 
+
 # Example usages
 # Coca-Cola and Pepsi
 ticker1 = "KO"
@@ -228,6 +203,4 @@ ticker2 = "MSFT"
 data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, plotting=True)
 
 # Apple and Microsoft - starting analysis 2022
-ticker1 = "AAPL"
-ticker2 = "MSFT"
 data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, plotting=True, start_date="2022-01-01")
