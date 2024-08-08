@@ -6,6 +6,8 @@ warnings.filterwarnings('ignore')
 import numpy as np
 import pandas as pd
 import yfinance as yf
+from scipy.optimize import minimize
+from scipy.stats import norm
 from statsmodels.tsa.stattools import adfuller
 from TS_plots import plot_assets_and_residuals
 
@@ -47,8 +49,8 @@ def perform_adf_test(residuals, significance_level):
     adf_test = adfuller(residuals)
     adf_statistic, p_value = adf_test[0], adf_test[1]
 
-    print(f"ADF Statistic: {adf_statistic:.2f}")
-    print(f"p-value: {p_value:.2f}")
+    print(f"ADF Statistic: {adf_statistic:.4f}")
+    print(f"p-value: {p_value:.4f}")
 
     if p_value < significance_level:
         print(f"The residuals are stationary (reject null hypothesis) "
@@ -80,6 +82,7 @@ def get_differences(data, columns):
     """Calculate the returns (differences) Delta y_t = y_t-y_{t-1} for the specified columns in the dataframe."""
     return data[columns].diff().dropna()
 
+
 def fit_ecm(data, residuals_column, target_column, independent_column):
     """Step2 of the Engle-Granger procedure: fit the Equilibrium Correction Model (ECM)."""
     data_delta = get_differences(data, [target_column, independent_column])
@@ -93,6 +96,31 @@ def fit_ecm(data, residuals_column, target_column, independent_column):
 
     ecm_residuals = pd.DataFrame(ecm_residuals, index=data_delta.index, columns=["ECM_residuals"])  # convert to pd.df
     return {'coefficients': ecm_coefficients, 'residuals': ecm_residuals}
+
+
+def ou_likelihood(params, residuals, dt=1):
+    """Calculates the negative log-likelihood of an Ornstein-Uhlenbeck process"""
+    theta, mu_e, sigma_ou = params
+    likelihood = 0
+    for t in range(1, len(residuals)):
+        mean = residuals[t-1] + theta * (mu_e - residuals[t-1]) * dt
+        variance = sigma_ou**2 * dt
+        # increment the log likelihood (=log probability density) with mean and variance of the next residual
+        likelihood += norm.logpdf(residuals[t], loc=mean, scale=np.sqrt(variance))
+    return -likelihood
+
+
+def estimate_ou_params(residuals):
+    """Estimate Ornstein-Uhlenbeck process parameters using maximum likelihood estimation.
+    The OU process is given as: d(residuals)_t = -theta (residuals_t-mu_e) dt + sigma_ou dX_t"""
+    dt = 1  # we are using daily prices, so time increment dt = 1
+    residuals = np.array(residuals)
+
+    initial_params = [0.1, np.mean(residuals), np.std(residuals)]  # [theta0, mu_ou0, sigma_ou0]
+    # we minimize negative log-likelihood, which is equivalent to using maximum likelihood estimator (MLE)
+    result = minimize(ou_likelihood, initial_params, args=(residuals, dt), method="L-BFGS-B")
+    theta, mu_e, sigma_ou = result.x
+    return theta, mu_e, sigma_ou
 
 
 def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
@@ -111,7 +139,16 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
     # Engle-Granger procedure - Step 2: ECM
     ecm_results = fit_ecm(data, "residuals", ticker1, ticker2)
     print(f"Equilibrium mean-reversion coefficient: {ecm_results['coefficients'][-1]:2f}")
-    return data, beta, adf_test_result, ecm_results
+
+    # Engle-Granger procedure - Step 3 (inofficial): fit OU process to mean-reverting residuals
+    theta, mu_e, sigma_ou = estimate_ou_params(data['residuals'])
+
+    print(f"Estimated OU parameters:")
+    print(f"Speed of mean reversion (theta): {theta:f}")
+    print(f"Long-term mean (mu_e): {mu_e:.4f}")
+    print(f"Volatility (sigma_ou): {sigma_ou:.4f}")
+
+    return data, beta, adf_test_result, ecm_results, {'theta': theta, 'mu_e': mu_e, 'sigma_ou': sigma_ou}
 
 
 def backtest_pairs_trading(data, ticker1, ticker2, z):
@@ -173,34 +210,35 @@ def evaluate_pairs_trading_strategy(data, ticker1, ticker2):
 # Coca-Cola and Pepsi
 ticker1 = "KO"
 ticker2 = "PEP"
-data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
+data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
 pnl_table = evaluate_pairs_trading_strategy(data, ticker1, ticker2)
 
 # Roche and Novartis
 ticker1 = "ROG.SW"
 ticker2 = "NOVN.SW"
-data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, index_ticker="^SSMI",
-                                                                 plotting=True, start_date="2022-01-01")
+data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, index_ticker="^SSMI",
+                                                                            plotting=True, start_date="2022-01-01")
 
 # Marriott and InterContinental Hotels Group
 ticker1 = "MAR"
 ticker2 = "IHG"
-data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2)
+data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
 
 # Exxon Mobil and Chevron
 ticker1 = "XOM"
 ticker2 = "CVX"
-data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2)
+data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
 
 # Gold commodity and Gold futures
 ticker1 = "GLD"
 ticker2 = "GC=F"
-data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2)
+data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
 
 # Apple and Microsoft - starting analysis 2014
 ticker1 = "AAPL"
 ticker2 = "MSFT"
-data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, plotting=True)
+data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, plotting=True)
 
 # Apple and Microsoft - starting analysis 2022
-data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, plotting=True, start_date="2022-01-01")
+data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, plotting=True,
+                                                                            start_date="2022-01-01")
