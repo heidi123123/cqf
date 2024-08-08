@@ -130,7 +130,7 @@ def analyze_cointegration(ticker1, ticker2, plotting=False, start_date="2014-01-
     return data, beta, adf_test_result, ecm_results
 
 
-def backtest_strategy(data, ticker1, ticker2, z):
+def backtest_pairs_trading(data, ticker1, ticker2, z):
     mean_residual = data['residuals'].mean()
     std_residual = data['residuals'].std()
     upper_bound = mean_residual + z * std_residual
@@ -176,11 +176,11 @@ def backtest_strategy(data, ticker1, ticker2, z):
     return np.sum(pnl)
 
 
-def analyze_mean_reversion(data, ticker1, ticker2):
+def evaluate_pairs_trading_strategy(data, ticker1, ticker2):
     # Test different Z values and select the best one
     results = []
     for z in np.arange(0.5, 2.5, 0.1):
-        pnl = backtest_strategy(data, ticker1, ticker2, z)
+        pnl = backtest_pairs_trading(data, ticker1, ticker2, z)
         results.append({'Z': z, 'PnL': pnl})
     return pd.DataFrame(results)
 
@@ -189,7 +189,7 @@ def analyze_mean_reversion(data, ticker1, ticker2):
 ticker1 = "KO"
 ticker2 = "PEP"
 data, beta, adf_test_result, ecm_results = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
-pnl_table = analyze_mean_reversion(data, ticker1, ticker2)
+pnl_table = evaluate_pairs_trading_strategy(data, ticker1, ticker2)
 
 # Roche and Novartis
 ticker1 = "ROG.SW"
