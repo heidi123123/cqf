@@ -120,6 +120,11 @@ def estimate_ou_params(residuals):
     # we minimize negative log-likelihood, which is equivalent to using maximum likelihood estimator (MLE)
     result = minimize(ou_likelihood, initial_params, args=(residuals, dt), method="L-BFGS-B")
     theta, mu_e, sigma_ou = result.x
+
+    print(f"Estimated OU parameters:")
+    print(f"Speed of mean reversion (theta): {theta:.4f}")
+    print(f"Long-term mean (mu_e): {mu_e:.4f}")
+    print(f"Volatility (sigma_ou): {sigma_ou:.4f}")
     return theta, mu_e, sigma_ou
 
 
@@ -142,11 +147,6 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
 
     # Engle-Granger procedure - Step 3 (inofficial): fit OU process to mean-reverting residuals
     theta, mu_e, sigma_ou = estimate_ou_params(data['residuals'])
-
-    print(f"Estimated OU parameters:")
-    print(f"Speed of mean reversion (theta): {theta:f}")
-    print(f"Long-term mean (mu_e): {mu_e:.4f}")
-    print(f"Volatility (sigma_ou): {sigma_ou:.4f}")
 
     return data, beta, adf_test_result, ecm_results, {'theta': theta, 'mu_e': mu_e, 'sigma_ou': sigma_ou}
 
