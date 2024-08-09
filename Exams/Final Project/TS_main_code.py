@@ -98,7 +98,7 @@ def fit_ecm(data, residuals_column, target_column, independent_column):
     return {'coefficients': ecm_coefficients, 'residuals': ecm_residuals}
 
 
-def ou_likelihood(params, residuals, dt=1):
+def ou_likelihood(params, residuals, dt):
     """Calculates the negative log-likelihood of an Ornstein-Uhlenbeck process"""
     theta, mu_e, sigma_ou = params
     likelihood = 0
@@ -110,22 +110,23 @@ def ou_likelihood(params, residuals, dt=1):
     return -likelihood
 
 
-def estimate_ou_params(residuals):
+def estimate_ou_params(residuals, dt=1):  # dt = 1: daily prices, so usually time increment dt = 1
     """Estimate Ornstein-Uhlenbeck process parameters using maximum likelihood estimation.
     The OU process is given as: d(residuals)_t = -theta (residuals_t-mu_e) dt + sigma_ou dX_t"""
-    dt = 1  # we are using daily prices, so time increment dt = 1
     residuals = np.array(residuals)
-
     initial_params = [0.1, np.mean(residuals), np.std(residuals)]  # [theta0, mu_ou0, sigma_ou0]
     # we minimize negative log-likelihood, which is equivalent to using maximum likelihood estimator (MLE)
     result = minimize(ou_likelihood, initial_params, args=(residuals, dt), method="L-BFGS-B")
     theta, mu_e, sigma_ou = result.x
-
-    print(f"Estimated OU parameters:")
-    print(f"Speed of mean reversion theta: {theta:.4f}")
-    print(f"Long-term mean mu_e: {mu_e:.4f}")
-    print(f"Volatility sigma_ou: {sigma_ou:.4f}")
     return theta, mu_e, sigma_ou
+
+
+def get_half_life(theta, dt=1):
+    """
+    Calculate the half-life of an Ornstein-Uhlenbeck process.
+    """
+    half_life = np.log(2) / (theta * dt)
+    return half_life
 
 
 def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
@@ -147,7 +148,8 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
 
     # Engle-Granger procedure - Step 3 (inofficial): fit OU process to mean-reverting residuals
     theta, mu_e, sigma_ou = estimate_ou_params(data['residuals'])
-
+    print(f"Estimated OU parameters: theta={theta:.4f}, mu_e={mu_e:.4f}, sigma_ou={sigma_ou:.4f}")
+    print(f"Half-life of OU process: {get_half_life(theta):.2f} days")
     return data, beta, adf_test_result, ecm_results, {'theta': theta, 'mu_e': mu_e, 'sigma_ou': sigma_ou}
 
 
