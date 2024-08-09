@@ -161,32 +161,37 @@ def calculate_optimal_bounds(theta, mu_e, sigma_ou, z):
     return upper_bound, lower_bound
 
 
-def manage_positions(row, residual, mean, upper_bound, lower_bound,
+def manage_positions(row, residual, mean, upper_bound, lower_bound, beta,
                      position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2, ticker1, ticker2):
-    """Manage positions for the trading strategy exploiting mean-reversion of 2 cointegrated assets"""
+    """Manage positions for the trading strategy exploiting mean-reversion of 2 cointegrated assets using
+    hedge ratio beta previously obtained in Engle-Granger step 1"""
     # entry conditions
     if position_ticker1 == 0 and position_ticker2 == 0:
-        if residual > upper_bound:  # spread between both tickers is very positive
-            return -1, 1, row[ticker1], row[ticker2], 0  # short ticker1 (over-valued from equilibrium), long ticker2
-        elif residual < lower_bound:  # spread between both tickers is very negative
-            return 1, -1, row[ticker1], row[ticker2], 0  # long ticker1 (under-valued from equilibrium), short ticker2
+        if residual > upper_bound:
+            # if spread between both tickers is very positive:
+            # short ticker1 (over-valued from equilibrium), long ticker2
+            return -1, beta, row[ticker1], row[ticker2], 0
+        elif residual < lower_bound:
+            # if spread between both tickers is very negative:
+            # long ticker1 (under-valued from equilibrium), short ticker2
+            return 1, -beta, row[ticker1], row[ticker2], 0
 
     # exit conditions
-    elif position_ticker1 == 1 and position_ticker2 == -1:
+    elif position_ticker1 == 1 and position_ticker2 == -beta:
         if residual >= mean:
-            pnl = (row[ticker1] - entry_price_ticker1) + (entry_price_ticker2 - row[ticker2])
+            pnl = (row[ticker1] - entry_price_ticker1) + (entry_price_ticker2 - row[ticker2]) * beta
             return 0, 0, 0, 0, pnl  # positions closed
 
-    elif position_ticker1 == -1 and position_ticker2 == 1:
+    elif position_ticker1 == -1 and position_ticker2 == beta:
         if residual <= mean:
-            pnl = (entry_price_ticker1 - row[ticker1]) + (row[ticker2] - entry_price_ticker2)
+            pnl = (entry_price_ticker1 - row[ticker1]) + (row[ticker2] - entry_price_ticker2) * beta
             return 0, 0, 0, 0, pnl  # positions closed
 
     # no change in positions
     return position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2, 0
 
 
-def backtest_pairs_trading(data, ticker1, ticker2, ou_params, z):
+def backtest_pairs_trading(data, ticker1, ticker2, ou_params, beta, z):
     """Backtest a pairs trading strategy by calculating various risk metrics."""
     theta, mu_e, sigma_ou = ou_params['theta'], ou_params['mu_e'], ou_params['sigma_ou']
     upper_bound, lower_bound = calculate_optimal_bounds(theta, mu_e, sigma_ou, z)
@@ -200,7 +205,7 @@ def backtest_pairs_trading(data, ticker1, ticker2, ou_params, z):
     for index, row in data.iterrows():
         residual = row['residuals']
         position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2, trade_pnl = \
-            manage_positions(row, residual, mu_e, upper_bound, lower_bound, position_ticker1, position_ticker2,
+            manage_positions(row, residual, mu_e, upper_bound, lower_bound, beta, position_ticker1, position_ticker2,
                              entry_price_ticker1, entry_price_ticker2, ticker1, ticker2)
         if trade_pnl != 0:
             pnl.append(trade_pnl)
@@ -208,11 +213,11 @@ def backtest_pairs_trading(data, ticker1, ticker2, ou_params, z):
     return np.sum(pnl)
 
 
-def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params):
+def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, beta):
     """Test Z values in range [0.3, ..., 1.4] and select the best one"""
     results = []
     for z in np.arange(0.3, 1.5, 0.1):
-        pnl = backtest_pairs_trading(data, ticker1, ticker2, ou_params, z)
+        pnl = backtest_pairs_trading(data, ticker1, ticker2, ou_params, beta, z)
         results.append({'Z': z, 'PnL': pnl})
     return pd.DataFrame(results)
 
@@ -222,7 +227,7 @@ def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params):
 ticker1 = "KO"
 ticker2 = "PEP"
 data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
-pnl_table = evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params)
+pnl_table = evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, beta[1])
 
 # Roche and Novartis
 ticker1 = "ROG.SW"
