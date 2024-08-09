@@ -122,9 +122,9 @@ def estimate_ou_params(residuals):
     theta, mu_e, sigma_ou = result.x
 
     print(f"Estimated OU parameters:")
-    print(f"Speed of mean reversion (theta): {theta:.4f}")
-    print(f"Long-term mean (mu_e): {mu_e:.4f}")
-    print(f"Volatility (sigma_ou): {sigma_ou:.4f}")
+    print(f"Speed of mean reversion theta: {theta:.4f}")
+    print(f"Long-term mean mu_e: {mu_e:.4f}")
+    print(f"Volatility sigma_ou: {sigma_ou:.4f}")
     return theta, mu_e, sigma_ou
 
 
