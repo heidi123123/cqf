@@ -153,14 +153,44 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
     return data, beta, adf_test_result, ecm_results, {'theta': theta, 'mu_e': mu_e, 'sigma_ou': sigma_ou}
 
 
-def backtest_pairs_trading(data, ticker1, ticker2, z):
-    mean_residual = data['residuals'].mean()
-    std_residual = data['residuals'].std()
-    upper_bound = mean_residual + z * std_residual
-    lower_bound = mean_residual - z * std_residual
+def calculate_optimal_bounds(theta, mu_e, sigma_ou, z):
+    """Calculate the upper and lower bounds for trading, CQF FP Workshop 2, sl. 15."""
+    sigma_eq = sigma_ou / np.sqrt(2 * theta)
+    upper_bound = mu_e + z * sigma_eq
+    lower_bound = mu_e - z * sigma_eq
+    return upper_bound, lower_bound
 
-    # Position Management explanation:
-    # position = 1: long, position = -1: short, position = 0: flat
+
+def manage_positions(row, residual, mean, upper_bound, lower_bound,
+                     position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2, ticker1, ticker2):
+    """Manage positions for the trading strategy exploiting mean-reversion of 2 cointegrated assets"""
+    # entry conditions
+    if position_ticker1 == 0 and position_ticker2 == 0:
+        if residual > upper_bound:  # spread between both tickers is very positive
+            return -1, 1, row[ticker1], row[ticker2], 0  # short ticker1 (over-valued from equilibrium), long ticker2
+        elif residual < lower_bound:  # spread between both tickers is very negative
+            return 1, -1, row[ticker1], row[ticker2], 0  # long ticker1 (under-valued from equilibrium), short ticker2
+
+    # exit conditions
+    elif position_ticker1 == 1 and position_ticker2 == -1:
+        if residual >= mean:
+            pnl = (row[ticker1] - entry_price_ticker1) + (entry_price_ticker2 - row[ticker2])
+            return 0, 0, 0, 0, pnl  # positions closed
+
+    elif position_ticker1 == -1 and position_ticker2 == 1:
+        if residual <= mean:
+            pnl = (entry_price_ticker1 - row[ticker1]) + (row[ticker2] - entry_price_ticker2)
+            return 0, 0, 0, 0, pnl  # positions closed
+
+    # no change in positions
+    return position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2, 0
+
+
+def backtest_pairs_trading(data, ticker1, ticker2, ou_params, z):
+    """Backtest a pairs trading strategy by calculating various risk metrics."""
+    theta, mu_e, sigma_ou = ou_params['theta'], ou_params['mu_e'], ou_params['sigma_ou']
+    upper_bound, lower_bound = calculate_optimal_bounds(theta, mu_e, sigma_ou, z)
+
     position_ticker1 = 0
     position_ticker2 = 0
     entry_price_ticker1 = 0
@@ -169,41 +199,20 @@ def backtest_pairs_trading(data, ticker1, ticker2, z):
 
     for index, row in data.iterrows():
         residual = row['residuals']
-
-        if position_ticker1 == 0 and position_ticker2 == 0:
-            if residual > upper_bound:  # spread between both tickers is very positive
-                position_ticker1 = -1  # short ticker1 since over-valued from equilibrium
-                position_ticker2 = 1  # long ticker2 since under-valued from equilibrium
-                entry_price_ticker1 = row[ticker1]
-                entry_price_ticker2 = row[ticker2]
-            elif residual < lower_bound:  # spread between both tickers is very negative
-                position_ticker1 = 1
-                position_ticker2 = -1
-                entry_price_ticker1 = row[ticker1]
-                entry_price_ticker2 = row[ticker2]
-
-        elif position_ticker1 == 1 and position_ticker2 == -1:  # Long ticker1, Short ticker2
-            if residual >= mean_residual:
-                pnl.append(
-                    (row[ticker1] - entry_price_ticker1) + (entry_price_ticker2 - row[ticker2]))  # Close positions
-                position_ticker1 = 0
-                position_ticker2 = 0
-
-        elif position_ticker1 == -1 and position_ticker2 == 1:  # Short ticker1, Long ticker2
-            if residual <= mean_residual:
-                pnl.append(
-                    (entry_price_ticker1 - row[ticker1]) + (row[ticker2] - entry_price_ticker2))  # Close positions
-                position_ticker1 = 0
-                position_ticker2 = 0
+        position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2, trade_pnl = \
+            manage_positions(row, residual, mu_e, upper_bound, lower_bound, position_ticker1, position_ticker2,
+                             entry_price_ticker1, entry_price_ticker2, ticker1, ticker2)
+        if trade_pnl != 0:
+            pnl.append(trade_pnl)
 
     return np.sum(pnl)
 
 
-def evaluate_pairs_trading_strategy(data, ticker1, ticker2):
-    # Test different Z values and select the best one
+def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params):
+    """Test Z values in range [0.3, ..., 1.4] and select the best one"""
     results = []
-    for z in np.arange(0.5, 2.5, 0.1):
-        pnl = backtest_pairs_trading(data, ticker1, ticker2, z)
+    for z in np.arange(0.3, 1.5, 0.1):
+        pnl = backtest_pairs_trading(data, ticker1, ticker2, ou_params, z)
         results.append({'Z': z, 'PnL': pnl})
     return pd.DataFrame(results)
 
@@ -213,7 +222,7 @@ def evaluate_pairs_trading_strategy(data, ticker1, ticker2):
 ticker1 = "KO"
 ticker2 = "PEP"
 data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
-pnl_table = evaluate_pairs_trading_strategy(data, ticker1, ticker2)
+pnl_table = evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params)
 
 # Roche and Novartis
 ticker1 = "ROG.SW"
