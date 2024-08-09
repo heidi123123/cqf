@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_assets_and_residuals(data, ticker1, ticker2, index_ticker):
@@ -49,6 +50,34 @@ def compare_ecm_residuals(data, ecm_results):
     plt.xlabel("Date")
     plt.ylabel("Residuals")
     plt.legend()
+    plt.show()
+
+
+def simulate_ou_process(theta, mu_e, sigma_ou, initial_value, num_steps, dt=1):
+    """Simulate an Ornstein-Uhlenbeck process."""
+    ou_process = np.zeros(num_steps)
+    ou_process[0] = initial_value
+    for t in range(1, num_steps):
+        ou_process[t] = ou_process[t-1] + theta * (mu_e - ou_process[t-1]) * dt + sigma_ou * np.sqrt(dt) * np.random.normal()
+    return ou_process
+
+
+def plot_ou_process_and_residuals(data, theta, mu_e, sigma_ou):
+    """Plot simulated OU process against actual residuals."""
+    # Simulate an OU process with the estimated parameters
+    num_steps = len(data['residuals'])
+    initial_value = data['residuals'].iloc[0]
+    simulated_residuals = simulate_ou_process(theta, mu_e, sigma_ou, initial_value, num_steps)
+
+    # Plot the actual residuals and the simulated OU process
+    plt.figure(figsize=(14, 8))
+    plt.plot(data.index, data['residuals'], label="Actual Residuals $e_t$")
+    plt.plot(data.index, simulated_residuals, label="Simulated OU Process", linestyle="-.")
+    plt.xlabel("Date")
+    plt.ylabel("Residuals")
+    plt.title("Actual Residuals vs. Simulated Ornstein-Uhlenbeck Process")
+    plt.legend()
+    plt.grid(True)
     plt.show()
 
 
