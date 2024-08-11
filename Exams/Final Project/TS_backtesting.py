@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import warnings
-warnings.filterwarnings('ignore')
 
 
 class Portfolio:
@@ -25,10 +23,40 @@ class Portfolio:
         lower_bound = self.mu_e - self.z * sigma_eq
         return upper_bound, lower_bound
 
+    def enter_position(self, row, position_ticker1, position_ticker2):
+        """Enter a position based on the current market conditions."""
+        entry_price_ticker1 = row[self.ticker1]
+        entry_price_ticker2 = row[self.ticker2]
+        self.positions.append((position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2))
+        return position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2
+
+    def calculate_trade_pnl(self, row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2):
+        """Calculate the PnL of the trade."""
+        if position_ticker1 == 1 and position_ticker2 == -self.hedge_ratio:
+            trade_pnl = (row[self.ticker1] - entry_price_ticker1) + (entry_price_ticker2 - row[self.ticker2]) * self.hedge_ratio
+        elif position_ticker1 == -1 and position_ticker2 == self.hedge_ratio:
+            trade_pnl = (entry_price_ticker1 - row[self.ticker1]) + (row[self.ticker2] - entry_price_ticker2) * self.hedge_ratio
+        else:
+            trade_pnl = 0
+        return trade_pnl
+
+    def append_return(self, trade_pnl, entry_price_ticker1, entry_price_ticker2):
+        """Append the return (either simple or log) to the self.returns list."""
+        simple_return = trade_pnl / (entry_price_ticker1 + self.hedge_ratio * entry_price_ticker2)
+        self.returns.append(simple_return)
+
+    def close_position(self, row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2):
+        """Close the position and calculate the PnL and return."""
+        trade_pnl = self.calculate_trade_pnl(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
+        if trade_pnl != 0:
+            self.pnl.append(trade_pnl)
+            self.append_return(trade_pnl, entry_price_ticker1, entry_price_ticker2)
+        return 0, 0, 0, 0  # reset positions and entry prices
+
     def manage_positions(self):
         """Manage positions for the trading strategy exploiting mean-reversion of 2 cointegrated assets using
         hedge ratio (beta1) previously obtained in Engle-Granger step 1 and track PnL."""
-        position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = (0, ) * 4
+        position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = 0, 0, 0, 0
         upper_bound, lower_bound = self.calculate_optimal_bounds()
 
         for index, row in self.data.iterrows():
@@ -36,33 +64,20 @@ class Portfolio:
 
             # entry conditions
             if position_ticker1 == 0 and position_ticker2 == 0:
-                if residual > upper_bound:
-                    # if spread between both tickers is very positive:
+                if residual > upper_bound:  # very positive spread
                     # short ticker1 (over-valued from equilibrium), long ticker2
                     position_ticker1, position_ticker2 = -1, self.hedge_ratio
-                    entry_price_ticker1, entry_price_ticker2 = row[self.ticker1], row[self.ticker2]
-                elif residual < lower_bound:
-                    # if spread between both tickers is very negative:
+                elif residual < lower_bound:  # very negative spread
                     # long ticker1 (under-valued from equilibrium), short ticker2
                     position_ticker1, position_ticker2 = 1, -self.hedge_ratio
-                    entry_price_ticker1, entry_price_ticker2 = row[self.ticker1], row[self.ticker2]
+                position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = \
+                    self.enter_position(row, position_ticker1, position_ticker2)
 
-            # exit conditions --> close positions
-            elif position_ticker1 == 1 and position_ticker2 == -self.hedge_ratio:
-                if residual >= self.mu_e:
-                    trade_pnl = (row[self.ticker1] - entry_price_ticker1) + (entry_price_ticker2 - row[self.ticker2]) * self.hedge_ratio
-                    self.pnl.append(trade_pnl)
-                    if entry_price_ticker1 != 0 and entry_price_ticker2 != 0:
-                        self.returns.append(trade_pnl / (entry_price_ticker1 + self.hedge_ratio * entry_price_ticker2))
-                    position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = 0, 0, 0, 0
-
-            elif position_ticker1 == -1 and position_ticker2 == self.hedge_ratio:
-                if residual <= self.mu_e:
-                    trade_pnl = (entry_price_ticker1 - row[self.ticker1]) + (row[self.ticker2] - entry_price_ticker2) * self.hedge_ratio
-                    self.pnl.append(trade_pnl)
-                    if entry_price_ticker1 != 0 and entry_price_ticker2 != 0:
-                        self.returns.append(trade_pnl / (entry_price_ticker1 + self.hedge_ratio * entry_price_ticker2))
-                    position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = 0, 0, 0, 0
+            # exit conditions -> close positions
+            elif (position_ticker1 == 1 and position_ticker2 == -self.hedge_ratio and residual >= self.mu_e) or \
+                 (position_ticker1 == -1 and position_ticker2 == self.hedge_ratio and residual <= self.mu_e):
+                position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = \
+                    self.close_position(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
 
         return np.sum(self.pnl)
 
