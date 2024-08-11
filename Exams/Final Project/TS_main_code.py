@@ -9,7 +9,7 @@ import yfinance as yf
 from scipy.optimize import minimize
 from scipy.stats import norm
 from statsmodels.tsa.stattools import adfuller
-from TS_backtesting import PairsTradingBacktest
+from TS_backtesting import Portfolio, RiskMetrics, evaluate_pairs_trading_strategy
 from TS_plots import plot_assets_and_residuals
 
 
@@ -154,25 +154,15 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
     return data, beta, adf_test_result, ecm_results, {'theta': theta, 'mu_e': mu_e, 'sigma_ou': sigma_ou}
 
 
-def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, beta):
-    """Test Z values in range [0.3, ..., 1.4] and select the best one"""
-    results = []
-    for z in np.arange(0.3, 1.5, 0.1):
-        backtest = PairsTradingBacktest(data, ticker1, ticker2, ou_params, beta, z)
-        pnl = backtest.get_backtesting_pnl()  # Run the backtest and get the PnL
-        results.append({'Z': z, 'PnL': pnl})
-    return pd.DataFrame(results)
-
-
 # Example usages
 # Coca-Cola and Pepsi
 ticker1 = "KO"
 ticker2 = "PEP"
 data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
-pnl_table = evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, beta[1])
-print(pnl_table)
+backtest_results = evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, beta[1])
+print(backtest_results)
 
-# Roche and Novartis
+"""# Roche and Novartis
 ticker1 = "ROG.SW"
 ticker2 = "NOVN.SW"
 data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, index_ticker="^SSMI",
@@ -201,3 +191,4 @@ data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(tick
 # Apple and Microsoft - starting analysis 2022
 data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, plotting=True,
                                                                             start_date="2022-01-01")
+"""
