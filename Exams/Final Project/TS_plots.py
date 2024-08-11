@@ -2,33 +2,51 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_assets_and_residuals(data, ticker1, ticker2, index_ticker):
+def plot_assets_and_residuals(train_data, test_data, ticker1, ticker2, index_ticker="SPY", split_ratio=0.7):
     plt.figure(figsize=(10, 10))
 
-    # normalize historical prices
-    normalized_ticker1 = data[ticker1] / data[ticker1].iloc[0]
-    normalized_ticker2 = data[ticker2] / data[ticker2].iloc[0]
-    normalized_index = data[index_ticker] / data[index_ticker].iloc[0]
+    # normalize historical prices for train data
+    normalized_train_ticker1 = train_data[ticker1] / train_data[ticker1].iloc[0]
+    normalized_train_ticker2 = train_data[ticker2] / train_data[ticker2].iloc[0]
+    normalized_train_index = train_data[index_ticker] / train_data[index_ticker].iloc[0]
+
+    # normalize historical prices for test data
+    normalized_test_ticker1 = test_data[ticker1] / train_data[ticker1].iloc[0]
+    normalized_test_ticker2 = test_data[ticker2] / train_data[ticker2].iloc[0]
+    normalized_test_index = test_data[index_ticker] / train_data[index_ticker].iloc[0]
+
+    # determine the split date
+    split_date = train_data.index[-1]
 
     # plot normalized prices
     plt.subplot(2, 1, 1)
-    plt.plot(data.index, normalized_ticker1, label=f"{ticker1} (normalized)", color="b")
-    plt.plot(data.index, normalized_ticker2, label=f"{ticker2} (normalized)", color="g")
-    plt.plot(data.index, normalized_index, label=f"{index_ticker} (normalized)", color="r")
+    plt.plot(train_data.index, normalized_train_ticker1, label=f"{ticker1} (normalized)", color="blue")
+    plt.plot(train_data.index, normalized_train_ticker2, label=f"{ticker2} (normalized)", color="green")
+    plt.plot(train_data.index, normalized_train_index, label=f"{index_ticker} (normalized)", color="orange")
+
+    plt.plot(test_data.index, normalized_test_ticker1, color="blue", linestyle="--")
+    plt.plot(test_data.index, normalized_test_ticker2, color="green", linestyle="--")
+    plt.plot(test_data.index, normalized_test_index, color="orange", linestyle="--")
+
+    plt.axvline(split_date, color="black", linestyle="--", label="Train/Test Data Split")
     plt.title(f"Normalized historical prices of {ticker1}, {ticker2}, and {index_ticker} index")
     plt.xlabel("Date")
     plt.ylabel("Normalized Price")
     plt.legend()
     plt.grid(True)
 
-    # plot residuals
+    # plot residuals for train and test data
     plt.subplot(2, 1, 2)
-    plt.plot(data.index, data['residuals'], label="Residuals")
-    mean = data['residuals'].mean()
-    stdev = data['residuals'].std()
-    plt.axhline(mean, color="r", linestyle="--", label=f"Mean $\mu$")
+    plt.plot(train_data.index, train_data['residuals'], label="Train Residuals", color="blue")
+    plt.plot(test_data.index, test_data['residuals'], label="Test Residuals", color="blue", linestyle="--")
+
+    plt.axvline(split_date, color="black", linestyle="--", label="Train/Test Data Split")
+    mean = train_data['residuals'].mean()
+    stdev = train_data['residuals'].std()
+    plt.axhline(mean, color="r", linestyle='--', label=f"Mean $\mu$")
     plt.axhline(mean + 1.1 * stdev, color="purple", linestyle="--", label="$\pm1.1*\sigma$")
     plt.axhline(mean - 1.1 * stdev, color="purple", linestyle="--")
+
     plt.title(f"Residuals of {ticker1} and {ticker2}")
     plt.xlabel("Date")
     plt.ylabel("Residuals")

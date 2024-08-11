@@ -9,8 +9,8 @@ import yfinance as yf
 from scipy.optimize import minimize
 from scipy.stats import norm
 from statsmodels.tsa.stattools import adfuller
-from TS_backtesting import Portfolio, RiskMetrics, evaluate_pairs_trading_strategy
-from TS_plots import plot_assets_and_residuals
+from TS_backtesting import evaluate_pairs_trading_strategy
+from TS_plots import plot_assets_and_residuals, plot_pnl_table
 
 
 def download_data(ticker, start_date="2014-01-01"):
@@ -34,6 +34,23 @@ def prepare_time_series(data1, data2, ticker1, ticker2, index_ticker):
     data = pd.concat([data1['Close'], data2['Close'], index_data['Close']], axis=1).dropna()
     data.columns = [ticker1, ticker2, index_ticker]
     return data
+
+
+def split_data(data, split_ratio=0.8):
+    """Splits the input data into training and testing subsets based on the provided split ratio."""
+    split_index = int(len(data) * split_ratio)
+    train_data = data.iloc[:split_index]
+    test_data = data.iloc[split_index:]
+    return train_data, test_data
+
+
+def calculate_test_residuals(data, beta, ticker1, ticker2):
+    """Calculate the residuals for a given dataset using the provided beta vector."""
+    y = data[ticker1].values
+    X = data[ticker2].values
+    X_with_intercept = np.hstack([np.ones((X.shape[0], 1)), X.reshape(-1, 1)])
+    residuals = y - X_with_intercept @ beta
+    return pd.Series(residuals, index=data.index)
 
 
 def least_squares_regression(y, X):
@@ -140,27 +157,38 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
     df2 = download_data(ticker2, start_date)
     data = prepare_time_series(df1, df2, ticker1, ticker2, index_ticker)
 
+    # test / train split:
+    train_data, test_data = split_data(data, split_ratio=0.7)
+
     # Engle-Granger procedure - Step 1
-    data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, index_ticker,
-                                                              data, plotting, significance_level)
+    train_data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, index_ticker,
+                                                                    train_data, plotting, significance_level)
+    test_data['residuals'] = calculate_test_residuals(test_data, beta, ticker1, ticker2)
     # Engle-Granger procedure - Step 2: ECM
-    ecm_results = fit_ecm(data, "residuals", ticker1, ticker2)
+    ecm_results = fit_ecm(train_data, "residuals", ticker1, ticker2)
     print(f"Equilibrium mean-reversion coefficient: {ecm_results['coefficients'][-1]:2f}")
 
     # Engle-Granger procedure - Step 3 (inofficial): fit OU process to mean-reverting residuals
-    theta, mu_e, sigma_ou = estimate_ou_params(data['residuals'])
+    theta, mu_e, sigma_ou = estimate_ou_params(train_data['residuals'])
     print(f"Estimated OU parameters: theta={theta:.4f}, mu_e={mu_e:.4f}, sigma_ou={sigma_ou:.4f}")
     print(f"Half-life of OU process: {get_half_life(theta):.2f} days")
-    return data, beta, adf_test_result, ecm_results, {'theta': theta, 'mu_e': mu_e, 'sigma_ou': sigma_ou}
+    ou_params = {'theta': theta, 'mu_e': mu_e, 'sigma_ou': sigma_ou}
+    return train_data, test_data, beta, adf_test_result, ecm_results, ou_params
 
 
 # Example usages
 # Coca-Cola and Pepsi
 ticker1 = "KO"
 ticker2 = "PEP"
-data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, significance_level=0.01)
-backtest_results = evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, beta[1])
-print(backtest_results)
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                             significance_level=0.01)
+# Backtesting: in-sample performance evaluation on train_data
+train_results = evaluate_pairs_trading_strategy(train_data, ticker1, ticker2, ou_params, beta[1])
+plot_pnl_table(train_results)
+
+# Backtesting: out-of-sample performance evaluation on test_data
+test_results = evaluate_pairs_trading_strategy(test_data, ticker1, ticker2, ou_params, beta[1])
+plot_pnl_table(test_results)
 
 """# Roche and Novartis
 ticker1 = "ROG.SW"
