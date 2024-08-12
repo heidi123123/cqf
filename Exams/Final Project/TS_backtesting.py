@@ -53,6 +53,7 @@ class Portfolio:
         if trade_pnl != 0:
             self.trade_pnl.append(trade_pnl)
             self.append_return(trade_pnl, entry_price_ticker1, entry_price_ticker2)
+            self.daily_pnl.at[row.name] = trade_pnl  # Add realized PnL to daily PnL
         return 0, 0, 0, 0  # reset positions and entry prices
 
     def manage_positions(self):
@@ -77,12 +78,9 @@ class Portfolio:
 
             # exit conditions -> close positions
             elif (position_ticker1 == 1 and position_ticker2 == -self.hedge_ratio and residual >= self.mu_e) or \
-                 (position_ticker1 == -1 and position_ticker2 == self.hedge_ratio and residual <= self.mu_e):
+                    (position_ticker1 == -1 and position_ticker2 == self.hedge_ratio and residual <= self.mu_e):
                 position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = \
                     self.close_position(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
-
-            # Calculate daily PnL (only counting already realized gains)
-            self.daily_pnl.at[index] = np.sum(self.trade_pnl)
 
         return np.sum(self.trade_pnl)
 
