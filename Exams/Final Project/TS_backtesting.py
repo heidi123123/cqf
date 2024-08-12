@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from TS_plots import plot_pnl_table
+from statsmodels.regression.rolling import RollingOLS
+from statsmodels.api import add_constant
 
 
 class Portfolio:
@@ -13,7 +15,7 @@ class Portfolio:
         self.mu_e = ou_params['mu_e']
         self.hedge_ratio = hedge_ratio
         self.z = z
-        self.trade_pnl = []
+        self.cumulative_pnl = []
         self.daily_pnl = pd.Series(index=data.index, dtype=float)
         self.positions = []
         self.returns = []
@@ -51,7 +53,7 @@ class Portfolio:
         """Close the position and calculate the PnL and return."""
         trade_pnl = self.calculate_trade_pnl(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
         if trade_pnl != 0:
-            self.trade_pnl.append(trade_pnl)
+            self.cumulative_pnl.append(trade_pnl)
             self.append_return(trade_pnl, entry_price_ticker1, entry_price_ticker2)
             self.daily_pnl.at[row.name] = trade_pnl  # Add realized PnL to daily PnL
         return 0, 0, 0, 0  # reset positions and entry prices
@@ -82,7 +84,7 @@ class Portfolio:
                 position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = \
                     self.close_position(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
 
-        return np.sum(self.trade_pnl)
+        return np.sum(self.cumulative_pnl)  # sum over all trade pnl's to obtain cumulative PnL
 
 
 class RiskMetrics:
