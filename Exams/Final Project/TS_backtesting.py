@@ -108,10 +108,10 @@ class RiskMetrics:
                 'ES': self.calculate_expected_shortfall()}
 
 
-def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, hedge_ratio):
-    """Test Z values in range [0.3, ..., 1.4] and select the best one."""
+def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, hedge_ratio, z_values):
+    """Test Z values in range of z_values (iterable) and calculate Pnl for every Z value."""
     results = []
-    for z in np.arange(0.3, 1.5, 0.1):
+    for z in z_values:
         portfolio = Portfolio(data, ticker1, ticker2, ou_params, hedge_ratio, z)
         pnl = portfolio.manage_positions()
         risk_metrics = RiskMetrics(portfolio.returns)
