@@ -13,7 +13,8 @@ class Portfolio:
         self.mu_e = ou_params['mu_e']
         self.hedge_ratio = hedge_ratio
         self.z = z
-        self.pnl = []
+        self.trade_pnl = []
+        self.daily_pnl = pd.Series(index=data.index, dtype=float)
         self.positions = []
         self.returns = []
 
@@ -50,13 +51,13 @@ class Portfolio:
         """Close the position and calculate the PnL and return."""
         trade_pnl = self.calculate_trade_pnl(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
         if trade_pnl != 0:
-            self.pnl.append(trade_pnl)
+            self.trade_pnl.append(trade_pnl)
             self.append_return(trade_pnl, entry_price_ticker1, entry_price_ticker2)
         return 0, 0, 0, 0  # reset positions and entry prices
 
     def manage_positions(self):
         """Manage positions for the trading strategy exploiting mean-reversion of 2 cointegrated assets using
-        hedge ratio (beta1) previously obtained in Engle-Granger step 1 and track PnL."""
+        hedge ratio (beta1) previously obtained in Engle-Granger step 1 and track daily PnL."""
         position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = 0, 0, 0, 0
         upper_bound, lower_bound = self.calculate_optimal_bounds()
 
@@ -80,7 +81,10 @@ class Portfolio:
                 position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = \
                     self.close_position(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
 
-        return np.sum(self.pnl)
+            # Calculate daily PnL (only counting already realized gains)
+            self.daily_pnl.at[index] = np.sum(self.trade_pnl)
+
+        return np.sum(self.trade_pnl)
 
 
 class RiskMetrics:
