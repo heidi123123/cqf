@@ -123,8 +123,9 @@ def plot_positions(portfolio):
     dates = portfolio.data.index
 
     plt.figure(figsize=(14, 6))
-    plt.plot(dates, portfolio.positions[portfolio.ticker1], label=f"Position {portfolio.ticker1}", color='blue')
-    plt.plot(dates, portfolio.positions[portfolio.ticker2], label=f"Position {portfolio.ticker2}", color='orange')
+    plt.axhline(0, color="r", linestyle="--", label="no position")
+    plt.plot(dates, portfolio.positions[portfolio.ticker1], label=f"Position {portfolio.ticker1}", color="blue")
+    plt.plot(dates, portfolio.positions[portfolio.ticker2], label=f"Position {portfolio.ticker2}", color="orange")
     plt.xlabel("Date")
     plt.ylabel("Position")
     plt.title(f"Positions for {portfolio.ticker1} and {portfolio.ticker2} Over Time")
