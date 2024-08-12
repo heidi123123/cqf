@@ -15,10 +15,10 @@ class Portfolio:
         self.mu_e = ou_params['mu_e']
         self.hedge_ratio = hedge_ratio
         self.z = z
-        self.cumulative_pnl = []
         self.daily_pnl = pd.Series(index=data.index, dtype=float)
         self.positions = []
         self.returns = []
+        self.manage_positions()
 
     def calculate_optimal_bounds(self):
         """Calculate the upper and lower bounds for trading, CQF FP Workshop 2, sl. 15."""
@@ -53,9 +53,8 @@ class Portfolio:
         """Close the position and calculate the PnL and return."""
         trade_pnl = self.calculate_trade_pnl(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
         if trade_pnl != 0:
-            self.cumulative_pnl.append(trade_pnl)
             self.append_return(trade_pnl, entry_price_ticker1, entry_price_ticker2)
-            self.daily_pnl.at[row.name] = trade_pnl  # Add realized PnL to daily PnL
+            self.daily_pnl.at[row.name] = trade_pnl  # add realized PnL to daily PnL
         return 0, 0, 0, 0  # reset positions and entry prices
 
     def manage_positions(self):
@@ -63,6 +62,9 @@ class Portfolio:
         hedge ratio (beta1) previously obtained in Engle-Granger step 1 and track daily PnL."""
         position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = 0, 0, 0, 0
         upper_bound, lower_bound = self.calculate_optimal_bounds()
+
+        # initialize the first value of daily PnL to 0
+        previous_pnl = 0
 
         for index, row in self.data.iterrows():
             residual = row['residuals']
@@ -84,7 +86,17 @@ class Portfolio:
                 position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = \
                     self.close_position(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
 
-        return np.sum(self.cumulative_pnl)  # sum over all trade pnl's to obtain cumulative PnL
+            # update the daily PnL by carrying forward the previous day's PnL
+            if pd.isna(self.daily_pnl.at[index]):
+                self.daily_pnl.at[index] = previous_pnl
+            else:
+                self.daily_pnl.at[index] += previous_pnl
+
+            previous_pnl = self.daily_pnl.at[index]
+
+    def get_cumulative_pnl(self):
+        """Return cumulative PnL."""
+        return self.daily_pnl.dropna().iloc[-1]
 
 
 class RiskMetrics:
@@ -114,7 +126,7 @@ class RiskMetrics:
 
 
 def find_best_pnl(pnl_table):
-    # find the best PnL value and its corresponding Z
+    """In a pnl_table dataframe, find the highest PnL value and its corresponding Z"""
     best_row = pnl_table.loc[pnl_table['PnL'].idxmax()]
     return best_row['Z'], best_row['PnL']
 
@@ -124,7 +136,7 @@ def backtest_strategy_for_z_values(data, ticker1, ticker2, ou_params, hedge_rati
     results = []
     for z in z_values:
         portfolio = Portfolio(data, ticker1, ticker2, ou_params, hedge_ratio, z)
-        pnl = portfolio.manage_positions()
+        pnl = portfolio.get_cumulative_pnl()
         risk_metrics = RiskMetrics(portfolio.returns)
         metrics = risk_metrics.run_full_analysis()
         results.append({'Z': z, 'PnL': pnl, **metrics})
