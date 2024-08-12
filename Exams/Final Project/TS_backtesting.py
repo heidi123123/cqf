@@ -15,7 +15,8 @@ class Portfolio:
         self.mu_e = ou_params['mu_e']
         self.hedge_ratio = hedge_ratio
         self.z = z
-        self.daily_pnl = pd.Series(index=data.index, dtype=float)
+        self.realized_daily_pnl = pd.Series(index=data.index, dtype=float).fillna(0)
+        self.unrealized_daily_pnl = pd.Series(index=data.index, dtype=float).fillna(0)
         self.positions = []
         self.returns = []
         self.manage_positions()
@@ -44,17 +45,25 @@ class Portfolio:
             trade_pnl = 0
         return trade_pnl
 
+    def calculate_unrealized_pnl(self, row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2):
+        """Calculate the unrealized PnL for the day based on the movement of ticker1 and ticker2."""
+        if position_ticker1 != 0 and position_ticker2 != 0:  # If a position is open
+            unrealized_pnl = self.calculate_trade_pnl(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
+        else:
+            unrealized_pnl = 0  # No unrealized PnL if no position is open
+        return unrealized_pnl
+
     def append_return(self, trade_pnl, entry_price_ticker1, entry_price_ticker2):
         """Append the return (either simple or log) to the self.returns list."""
         simple_return = trade_pnl / (entry_price_ticker1 + self.hedge_ratio * entry_price_ticker2)
         self.returns.append(simple_return)
 
     def close_position(self, row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2):
-        """Close the position and calculate the PnL and return."""
+        """Close the position and calculate realized PnL."""
         trade_pnl = self.calculate_trade_pnl(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
         if trade_pnl != 0:
             self.append_return(trade_pnl, entry_price_ticker1, entry_price_ticker2)
-            self.daily_pnl.at[row.name] = trade_pnl  # add realized PnL to daily PnL
+            self.realized_daily_pnl.at[row.name] += trade_pnl  # add realized PnL
         return 0, 0, 0, 0  # reset positions and entry prices
 
     def manage_positions(self):
@@ -63,8 +72,8 @@ class Portfolio:
         position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = 0, 0, 0, 0
         upper_bound, lower_bound = self.calculate_optimal_bounds()
 
-        # initialize the first value of daily PnL to 0
-        previous_pnl = 0
+        # initialize the first value of both daily PnLs to 0
+        previous_realized_pnl, previous_unrealized_pnl = 0, 0
 
         for index, row in self.data.iterrows():
             residual = row['residuals']
@@ -86,17 +95,24 @@ class Portfolio:
                 position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = \
                     self.close_position(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
 
-            # update the daily PnL by carrying forward the previous day's PnL
-            if pd.isna(self.daily_pnl.at[index]):
-                self.daily_pnl.at[index] = previous_pnl
-            else:
-                self.daily_pnl.at[index] += previous_pnl
+            # calculate unrealized PnL for the day
+            unrealized_pnl = self.calculate_unrealized_pnl(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
+            self.unrealized_daily_pnl.at[index] = unrealized_pnl
 
-            previous_pnl = self.daily_pnl.at[index]
+            # carry forward realized and unrealized PnL
+            self.realized_daily_pnl.at[index] += previous_realized_pnl
+            self.unrealized_daily_pnl.at[index] += previous_unrealized_pnl
+
+            previous_realized_pnl = self.realized_daily_pnl.at[index]
+            previous_unrealized_pnl = self.unrealized_daily_pnl.at[index]
 
     def get_cumulative_pnl(self):
-        """Return cumulative PnL."""
-        return self.daily_pnl.dropna().iloc[-1]
+        """Return cumulative realized PnL."""
+        return self.realized_daily_pnl.iloc[-1]
+
+    def get_total_pnl(self):
+        """Return total PnL, combining realized and unrealized PnL."""
+        return self.realized_daily_pnl.add(self.unrealized_daily_pnl, fill_value=0).iloc[-1]
 
 
 class RiskMetrics:
