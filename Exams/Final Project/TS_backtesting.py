@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from TS_plots import plot_pnl_table
 
 
 class Portfolio:
@@ -108,7 +109,13 @@ class RiskMetrics:
                 'ES': self.calculate_expected_shortfall()}
 
 
-def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, hedge_ratio, z_values):
+def find_best_pnl(pnl_table):
+    # find the best PnL value and its corresponding Z
+    best_row = pnl_table.loc[pnl_table['PnL'].idxmax()]
+    return best_row['Z'], best_row['PnL']
+
+
+def backtest_strategy_for_z_values(data, ticker1, ticker2, ou_params, hedge_ratio, z_values, plotting=False):
     """Test Z values in range of z_values (iterable) and calculate Pnl for every Z value."""
     results = []
     for z in z_values:
@@ -117,4 +124,8 @@ def evaluate_pairs_trading_strategy(data, ticker1, ticker2, ou_params, hedge_rat
         risk_metrics = RiskMetrics(portfolio.returns)
         metrics = risk_metrics.run_full_analysis()
         results.append({'Z': z, 'PnL': pnl, **metrics})
-    return pd.DataFrame(results)
+    results_df = pd.DataFrame(results)
+    best_z, best_pnl = find_best_pnl(results_df)
+    if plotting:
+        plot_pnl_table(results_df, best_z, best_pnl)
+    return results_df, best_z

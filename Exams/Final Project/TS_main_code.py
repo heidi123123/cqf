@@ -9,8 +9,8 @@ import yfinance as yf
 from scipy.optimize import minimize
 from scipy.stats import norm
 from statsmodels.tsa.stattools import adfuller
-from TS_backtesting import evaluate_pairs_trading_strategy
-from TS_plots import plot_assets_and_residuals, plot_pnl_table, find_best_pnl
+from TS_backtesting import backtest_strategy_for_z_values
+from TS_plots import plot_assets_and_residuals, plot_pnl_table
 
 
 def download_data(ticker, start_date="2014-01-01"):
@@ -184,15 +184,12 @@ train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_c
                                                                                              significance_level=0.01)
 # Backtesting: in-sample performance evaluation on train_data
 test_z_values = np.arange(0.3, 1.5, 0.1)
-train_results = evaluate_pairs_trading_strategy(train_data, ticker1, ticker2, ou_params, beta[1],
-                                                z_values=test_z_values)
-z_best, _ = find_best_pnl(train_results)
-plot_pnl_table(train_results)
+train_results, z_best = backtest_strategy_for_z_values(train_data, ticker1, ticker2, ou_params, beta[1],
+                                                       z_values=test_z_values, plotting=True)
 
 # Backtesting: out-of-sample performance evaluation on test_data
-test_results = evaluate_pairs_trading_strategy(test_data, ticker1, ticker2, ou_params, beta[1],
-                                               z_values=test_z_values)
-plot_pnl_table(test_results)
+test_results, _ = backtest_strategy_for_z_values(test_data, ticker1, ticker2, ou_params, beta[1],
+                                                 z_values=test_z_values, plotting=True)
 
 """# Roche and Novartis
 ticker1 = "ROG.SW"

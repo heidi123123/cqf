@@ -99,18 +99,11 @@ def plot_ou_process_and_residuals(data, theta, mu_e, sigma_ou):
     plt.show()
 
 
-def find_best_pnl(pnl_table):
-    # find the best PnL value and its corresponding Z
-    best_row = pnl_table.loc[pnl_table['PnL'].idxmax()]
-    return best_row['Z'], best_row['PnL']
-
-
-def plot_pnl_table(pnl_table):
+def plot_pnl_table(pnl_table, best_z, best_pnl):
     plt.figure(figsize=(10, 6))
     plt.plot(pnl_table['Z'], pnl_table['PnL'], marker="o", linestyle="-", color="b", label="PnL vs Z")
 
     # Highlight the best PnL point with a star
-    best_z, best_pnl = find_best_pnl(pnl_table)
     plt.scatter(best_z, best_pnl, color='r', marker="*", s=100, zorder=5,
                 label=f"Best PnL: {best_pnl:.2f} at Z={best_z:.2f}")
 
