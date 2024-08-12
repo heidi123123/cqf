@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 from TS_plots import plot_pnl_table
-from statsmodels.regression.rolling import RollingOLS
-from statsmodels.api import add_constant
 
 
 class Portfolio:
@@ -17,7 +15,7 @@ class Portfolio:
         self.z = z
         self.realized_daily_pnl = pd.Series(index=data.index, dtype=float).fillna(0)
         self.unrealized_daily_pnl = pd.Series(index=data.index, dtype=float).fillna(0)
-        self.positions = []
+        self.positions = pd.DataFrame(index=data.index, columns=[ticker1, ticker2]).fillna(0)
         self.returns = []
         self.manage_positions()
 
@@ -32,7 +30,6 @@ class Portfolio:
         """Enter a position based on the current market conditions."""
         entry_price_ticker1 = row[self.ticker1]
         entry_price_ticker2 = row[self.ticker2]
-        self.positions.append((position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2))
         return position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2
 
     def calculate_trade_pnl(self, row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2):
@@ -105,6 +102,10 @@ class Portfolio:
 
             previous_realized_pnl = self.realized_daily_pnl.at[index]
             previous_unrealized_pnl = self.unrealized_daily_pnl.at[index]
+
+            # store the positions for this date
+            self.positions.at[index, self.ticker1] = position_ticker1
+            self.positions.at[index, self.ticker2] = position_ticker2
 
     def get_cumulative_pnl(self):
         """Return cumulative realized PnL."""
