@@ -9,8 +9,8 @@ import yfinance as yf
 from scipy.optimize import minimize
 from scipy.stats import norm
 from statsmodels.tsa.stattools import adfuller
-from TS_backtesting import backtest_strategy_for_z_values
-from TS_plots import plot_assets_and_residuals, plot_pnl_table
+from TS_backtesting import Portfolio, backtest_strategy_for_z_values
+from TS_plots import plot_assets_and_residuals, plot_positions, plot_asset_prices_and_residuals
 
 
 def download_data(ticker, start_date="2014-01-01"):
@@ -187,9 +187,19 @@ test_z_values = np.arange(0.3, 1.5, 0.1)
 train_results, z_best = backtest_strategy_for_z_values(train_data, ticker1, ticker2, ou_params, beta[1],
                                                        z_values=test_z_values, plotting=True)
 
+# Plot strategy:
+train_portfolio = Portfolio(train_data, ticker1, ticker2, ou_params, beta[1], z=z_best)
+plot_positions(train_portfolio)
+plot_asset_prices_and_residuals(train_portfolio)
+
 # Backtesting: out-of-sample performance evaluation on test_data
 test_results, _ = backtest_strategy_for_z_values(test_data, ticker1, ticker2, ou_params, beta[1],
                                                  z_values=test_z_values, plotting=True)
+
+# Plot strategy:
+test_portfolio = Portfolio(test_data, ticker1, ticker2, ou_params, beta[1], z=z_best)
+plot_positions(test_portfolio)
+plot_asset_prices_and_residuals(test_portfolio)
 
 """# Roche and Novartis
 ticker1 = "ROG.SW"

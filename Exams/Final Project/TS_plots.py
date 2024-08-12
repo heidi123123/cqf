@@ -100,6 +100,7 @@ def plot_ou_process_and_residuals(data, theta, mu_e, sigma_ou):
 
 
 def plot_pnl_table(pnl_table, best_z, best_pnl):
+    """Plot the PnL values achieved for different Z-values. Mark the best Z-value with a star."""
     plt.figure(figsize=(10, 6))
     plt.plot(pnl_table['Z'], pnl_table['PnL'], marker="o", linestyle="-", color="b", label="PnL vs Z")
 
@@ -114,4 +115,47 @@ def plot_pnl_table(pnl_table, best_z, best_pnl):
     plt.xlabel("Z")
     plt.ylabel("PnL")
     plt.grid(True)
+    plt.show()
+
+
+def plot_positions(portfolio):
+    """Plot the positions of ticker1 and ticker2 over time."""
+    dates = portfolio.data.index
+
+    plt.figure(figsize=(14, 6))
+    plt.plot(dates, portfolio.positions[portfolio.ticker1], label=f"Position {portfolio.ticker1}", color='blue')
+    plt.plot(dates, portfolio.positions[portfolio.ticker2], label=f"Position {portfolio.ticker2}", color='orange')
+    plt.xlabel("Date")
+    plt.ylabel("Position")
+    plt.title(f"Positions for {portfolio.ticker1} and {portfolio.ticker2} Over Time")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def plot_asset_prices_and_residuals(portfolio):
+    """Plot the asset prices and residuals with sigma_eq-bands using subplots."""
+    dates = portfolio.data.index
+
+    fig, ax1 = plt.subplots(figsize=(14, 6))
+
+    # primary y-axis: asset prices
+    ax1.plot(dates, portfolio.data[portfolio.ticker1], label=f"{portfolio.ticker1} Price", color="blue")
+    ax1.plot(dates, portfolio.data[portfolio.ticker2], label=f"{portfolio.ticker2} Price", color="orange")
+    ax1.set_xlabel("Date")
+    ax1.set_ylabel("Asset Price")
+    ax1.legend()
+    ax1.grid(True)
+
+    # secondary y-axis: residuals
+    ax2 = ax1.twinx()
+    ax2.plot(dates, portfolio.data['residuals'], label="Residuals", color="green")
+    ax2.axhline(portfolio.mu_e, color="black", linestyle="--", label=r"$\mu_e$")
+    upper_bound, lower_bound = portfolio.calculate_optimal_bounds()
+    ax2.axhline(upper_bound, color="grey", linestyle="--", label=r"$\mu_e \pm z_{best} \times \sigma_{eq}$")
+    ax2.axhline(lower_bound, color="grey", linestyle="--")
+    ax2.set_ylabel("Residuals")
+    ax2.legend()
+
+    plt.title(f"Asset Prices and Residuals with Thresholds for {portfolio.ticker1} and {portfolio.ticker2}")
     plt.show()
