@@ -203,6 +203,7 @@ ticker1 = "ROG.SW"
 ticker2 = "NOVN.SW"
 train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, index_ticker="^SSMI",
                                                                                              plotting=True, start_date="2022-01-01")
+analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1],  index_ticker="^SSMI")
 
 # Marriott and InterContinental Hotels Group
 ticker1 = "MAR"
