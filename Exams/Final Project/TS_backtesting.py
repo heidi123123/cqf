@@ -69,8 +69,8 @@ class Portfolio:
         position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2 = 0, 0, 0, 0
         upper_bound, lower_bound = self.calculate_optimal_bounds()
 
-        # initialize the first value of both daily PnLs to 0
-        previous_realized_pnl, previous_unrealized_pnl = 0, 0
+        # initialize the first value of realized PnL to 0 - will be needed later in the loop to be carried forward
+        previous_realized_pnl = 0
 
         for index, row in self.data.iterrows():
             residual = row['residuals']
@@ -96,12 +96,9 @@ class Portfolio:
             unrealized_pnl = self.calculate_unrealized_pnl(row, position_ticker1, position_ticker2, entry_price_ticker1, entry_price_ticker2)
             self.unrealized_daily_pnl.at[index] = unrealized_pnl
 
-            # carry forward realized and unrealized PnL
+            # carry forward realized PnL
             self.realized_daily_pnl.at[index] += previous_realized_pnl
-            self.unrealized_daily_pnl.at[index] += previous_unrealized_pnl
-
             previous_realized_pnl = self.realized_daily_pnl.at[index]
-            previous_unrealized_pnl = self.unrealized_daily_pnl.at[index]
 
             # store the positions for this date
             self.positions.at[index, self.ticker1] = position_ticker1
