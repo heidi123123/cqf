@@ -79,21 +79,22 @@ def perform_adf_test(residuals, significance_level):
     return adf_test
 
 
-def perform_engle_granger_step1(ticker1, ticker2, index_ticker, data, plotting, significance_level):
+def perform_engle_granger_step1(ticker1, ticker2, index_ticker, train_data, test_data, plotting, significance_level):
     """Step1 of the Engle-Granger procedure."""
 
     # OLS regression to obtain regression coefficients beta & residuals
-    y = data[ticker1].values
-    X = data[ticker2].values.reshape(-1, 1)
+    y = train_data[ticker1].values
+    X = train_data[ticker2].values.reshape(-1, 1)
     beta, residuals = least_squares_regression(y, X)
-    data['residuals'] = residuals
+    train_data['residuals'] = residuals
+    test_data['residuals'] = calculate_test_residuals(test_data, beta, ticker1, ticker2)
 
     if plotting:  # plot normalized asset prices and residuals
-        plot_assets_and_residuals(data, ticker1, ticker2, index_ticker)
+        plot_assets_and_residuals(train_data, test_data, ticker1, ticker2, index_ticker)
 
     # perform ADF test
-    adf_test_result = perform_adf_test(data['residuals'], significance_level)
-    return data, beta, adf_test_result
+    adf_test_result = perform_adf_test(train_data['residuals'], significance_level)
+    return train_data, test_data, beta, adf_test_result
 
 
 def get_differences(data, columns):
@@ -161,9 +162,9 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
     train_data, test_data = split_data(data, split_ratio=0.7)
 
     # Engle-Granger procedure - Step 1
-    train_data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, index_ticker,
-                                                                    train_data, plotting, significance_level)
-    test_data['residuals'] = calculate_test_residuals(test_data, beta, ticker1, ticker2)
+    train_data, test_data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, index_ticker,
+                                                                               train_data, test_data, plotting,
+                                                                               significance_level)
     # Engle-Granger procedure - Step 2: ECM
     ecm_results = fit_ecm(train_data, "residuals", ticker1, ticker2)
     print(f"Equilibrium mean-reversion coefficient: {ecm_results['coefficients'][-1]:2f}")
@@ -200,30 +201,34 @@ analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, bet
 """# Roche and Novartis
 ticker1 = "ROG.SW"
 ticker2 = "NOVN.SW"
-data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, index_ticker="^SSMI",
-                                                                            plotting=True, start_date="2022-01-01")
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, index_ticker="^SSMI",
+                                                                                             plotting=True, start_date="2022-01-01")
 
 # Marriott and InterContinental Hotels Group
 ticker1 = "MAR"
 ticker2 = "IHG"
-data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
 
 # Exxon Mobil and Chevron
 ticker1 = "XOM"
 ticker2 = "CVX"
-data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
 
 # Gold commodity and Gold futures
 ticker1 = "GLD"
 ticker2 = "GC=F"
-data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)"""
 
-# Apple and Microsoft - starting analysis 2014
+
+# Apple and Microsoft - starting analysis 2019
 ticker1 = "AAPL"
 ticker2 = "MSFT"
-data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, plotting=True)
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                             start_date="2019-01-01",
+                                                                                             plotting=True)
 
 # Apple and Microsoft - starting analysis 2022
-data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, plotting=True,
-                                                                            start_date="2022-01-01")
-"""
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                             start_date="2021-01-01",
+                                                                                             plotting=True)
+analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
