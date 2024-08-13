@@ -153,7 +153,7 @@ def plot_asset_prices_and_residuals(portfolio):
     ax2.plot(dates, portfolio.data['residuals'], label="Residuals", color="green")
     ax2.axhline(portfolio.mu_e, color="black", linestyle="--", label=r"$\mu_e$")
     upper_bound, lower_bound = portfolio.calculate_optimal_bounds()
-    sigma_band_label = r"$\mu_e \pm " + str(portfolio.z) + r" \times \sigma_{eq}$"
+    sigma_band_label = r"$\mu_e \pm " + str(round(portfolio.z, 1)) + r" \times \sigma_{eq}$"
     ax2.axhline(upper_bound, color="grey", linestyle="--", label=sigma_band_label)
     ax2.axhline(lower_bound, color="grey", linestyle="--")
     ax2.set_ylabel("Residuals")
@@ -192,7 +192,7 @@ def plot_pnl_against_index(portfolio, index_ticker):
     total_pnl = portfolio.unrealized_daily_pnl + portfolio.realized_daily_pnl
     dates = portfolio.data.index
 
-    # Calculate the cumulative return of the index and scale to portfolio investment
+    # calculate cumulative index return and scale to portfolio investment
     index_prices = portfolio.data[index_ticker]
     initial_index_price = index_prices.iloc[0]
     normalized_index_return = (index_prices - initial_index_price) / initial_index_price
