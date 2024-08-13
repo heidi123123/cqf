@@ -153,7 +153,8 @@ def plot_asset_prices_and_residuals(portfolio):
     ax2.plot(dates, portfolio.data['residuals'], label="Residuals", color="green")
     ax2.axhline(portfolio.mu_e, color="black", linestyle="--", label=r"$\mu_e$")
     upper_bound, lower_bound = portfolio.calculate_optimal_bounds()
-    ax2.axhline(upper_bound, color="grey", linestyle="--", label=r"$\mu_e \pm z_{best} \times \sigma_{eq}$")
+    sigma_band_label = r"$\mu_e \pm " + str(portfolio.z) + r" \times \sigma_{eq}$"
+    ax2.axhline(upper_bound, color="grey", linestyle="--", label=sigma_band_label)
     ax2.axhline(lower_bound, color="grey", linestyle="--")
     ax2.set_ylabel("Residuals")
     ax2.legend()
