@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 from statsmodels.tsa.stattools import adfuller
 from TS_backtesting import Portfolio, backtest_strategy_for_z_values
-from TS_plots import plot_assets_and_residuals, plot_positions, plot_asset_prices_and_residuals
+from TS_plots import plot_assets_and_residuals, plot_positions, plot_asset_prices_and_residuals, plot_pnl_against_index
 
 
 def download_data(ticker, start_date="2014-01-01"):
@@ -176,6 +176,18 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
     return train_data, test_data, beta, adf_test_result, ecm_results, ou_params
 
 
+def analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, hedge_ratio, index_ticker="SPY",
+                             test_z_values=np.arange(0.3, 1.5, 0.1)):
+    # Backtesting: in-sample performance evaluation on train_data to find best z-value
+    train_results, z_best = backtest_strategy_for_z_values(train_data, ticker1, ticker2, ou_params, hedge_ratio, test_z_values)
+
+    # Implement + analyze strategy with optimized z=z_best on test_data
+    test_portfolio = Portfolio(test_data, ticker1, ticker2, ou_params, hedge_ratio, z=z_best)
+    plot_positions(test_portfolio)
+    plot_asset_prices_and_residuals(test_portfolio)
+    plot_pnl_against_index(test_portfolio, index_ticker)
+
+
 # Example usages
 # Coca-Cola and Pepsi
 ticker1 = "KO"
@@ -183,24 +195,7 @@ ticker2 = "PEP"
 train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
                                                                                              significance_level=0.05,
                                                                                              start_date="2016-01-01")
-# Backtesting: in-sample performance evaluation on train_data
-test_z_values = np.arange(0.3, 1.5, 0.1)
-train_results, z_best = backtest_strategy_for_z_values(train_data, ticker1, ticker2, ou_params, beta[1],
-                                                       z_values=test_z_values, plotting=True)
-
-# Plot strategy:
-train_portfolio = Portfolio(train_data, ticker1, ticker2, ou_params, beta[1], z=z_best)
-plot_positions(train_portfolio)
-plot_asset_prices_and_residuals(train_portfolio)
-
-# Backtesting: out-of-sample performance evaluation on test_data
-test_results, _ = backtest_strategy_for_z_values(test_data, ticker1, ticker2, ou_params, beta[1],
-                                                 z_values=test_z_values, plotting=True)
-
-# Plot strategy:
-test_portfolio = Portfolio(test_data, ticker1, ticker2, ou_params, beta[1], z=z_best)
-plot_positions(test_portfolio)
-plot_asset_prices_and_residuals(test_portfolio)
+analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
 
 """# Roche and Novartis
 ticker1 = "ROG.SW"
