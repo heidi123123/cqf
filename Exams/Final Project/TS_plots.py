@@ -161,3 +161,50 @@ def plot_asset_prices_and_residuals(portfolio):
 
     plt.title(f"Asset Prices and Residuals with Thresholds for {portfolio.ticker1} and {portfolio.ticker2}")
     plt.show()
+
+
+def get_portfolio_investment(portfolio):
+    """Calculate the initial dollar investment in the portfolio."""
+    ticker1 = portfolio.ticker1
+    ticker2 = portfolio.ticker2
+
+    # boolean series for non-zero positions in ticker1 and ticker2
+    condition_ticker1 = portfolio.positions[ticker1] != 0
+    condition_ticker2 = portfolio.positions[ticker2] != 0
+    combined_condition = np.logical_or(condition_ticker1, condition_ticker2)
+
+    # find index of the first non-zero position
+    first_trade_date_idx = portfolio.positions[combined_condition].index[0]
+
+    # entry prices at first trade date
+    entry_price_ticker1 = portfolio.data.loc[first_trade_date_idx, ticker1]
+    entry_price_ticker2 = portfolio.data.loc[first_trade_date_idx, ticker2]
+
+    # positions of first trade date
+    position_ticker1 = portfolio.positions.loc[first_trade_date_idx, ticker1]
+    position_ticker2 = portfolio.positions.loc[first_trade_date_idx, ticker2]
+    return entry_price_ticker1 * position_ticker1 + entry_price_ticker2 * position_ticker2
+
+
+def plot_pnl_against_index(portfolio, index_ticker):
+    """Plot the portfolio PnL compared to index performance."""
+    realized_pnl = portfolio.realized_daily_pnl
+    total_pnl = portfolio.unrealized_daily_pnl + portfolio.realized_daily_pnl
+    dates = portfolio.data.index
+
+    # Calculate the cumulative return of the index and scale to portfolio investment
+    index_prices = portfolio.data[index_ticker]
+    initial_index_price = index_prices.iloc[0]
+    normalized_index_return = (index_prices - initial_index_price) / initial_index_price
+    index_return_scaled = normalized_index_return * get_portfolio_investment(portfolio)
+
+    plt.figure(figsize=(14, 6))
+    plt.plot(dates, realized_pnl, label="Realized PnL", color="blue")
+    plt.plot(dates, total_pnl, label="Total PnL incl. Unrealized Gains", color="red")
+    plt.plot(dates, index_return_scaled, label=f"{index_ticker} Performance", color="green", linestyle="--")
+    plt.title(f"PnL Evolution over Test Data Period - compared against {index_ticker} index")
+    plt.xlabel("Date")
+    plt.ylabel("Performance [$]")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
