@@ -181,7 +181,8 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
 ticker1 = "KO"
 ticker2 = "PEP"
 train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                             significance_level=0.01)
+                                                                                             significance_level=0.05,
+                                                                                             start_date="2016-01-01")
 # Backtesting: in-sample performance evaluation on train_data
 test_z_values = np.arange(0.3, 1.5, 0.1)
 train_results, z_best = backtest_strategy_for_z_values(train_data, ticker1, ticker2, ou_params, beta[1],

@@ -159,13 +159,3 @@ def backtest_strategy_for_z_values(data, ticker1, ticker2, ou_params, hedge_rati
     if plotting:
         plot_pnl_table(results_df, best_z, best_pnl)
     return results_df, best_z
-
-
-def calculate_cumulative_index_returns(test_data, index_ticker="SPY"):
-    """Calculate cumulative PnL for equity as benchmark.
-    This is the return for holding the index from start to end of test_data."""
-    initial_price = test_data[index_ticker].iloc[0]
-    final_price = test_data[index_ticker].iloc[-1]
-    pnl = final_price - initial_price
-    cum_return = pnl / initial_price
-    return cum_return
