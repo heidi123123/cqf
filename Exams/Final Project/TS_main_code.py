@@ -61,14 +61,15 @@ def least_squares_regression(y, X):
     return beta, residuals
 
 
-def perform_adf_test(residuals, significance_level):
+def perform_adf_test(residuals, significance_level, maxlag=None):
     """Perform the Augmented Dickey-Fuller (ADF) test to check for the presence of unit root in a time series.
     H0: time series has a unit root (i.e. non-stationary)"""
-    adf_test = adfuller(residuals)
-    adf_statistic, p_value = adf_test[0], adf_test[1]
+    adf_test = adfuller(residuals, maxlag=maxlag)
+    adf_statistic, p_value, lags = adf_test[0], adf_test[1], adf_test[2]
 
     print(f"ADF Statistic: {adf_statistic:.4f}")
     print(f"p-value: {p_value:.4f}")
+    print(f"Number of lags: {lags}")
 
     if p_value < significance_level:
         print(f"The residuals are stationary (reject null hypothesis) "
