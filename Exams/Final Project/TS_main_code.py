@@ -56,7 +56,7 @@ def calculate_test_residuals(data, beta, ticker1, ticker2):
 def least_squares_regression(y, X):
     """Perform least squares regression to obtain beta coefficients and residuals."""
     X = np.hstack([np.ones((X.shape[0], 1)), X])  # add y-intercept to X
-    beta = np.linalg.inv(X.T @ X) @ (X.T @ y)  # least sqaures regression into coefficient vector beta
+    beta = np.linalg.inv(X.T @ X) @ (X.T @ y)  # least squares regression for beta
     residuals = y - X @ beta
     return beta, residuals
 
