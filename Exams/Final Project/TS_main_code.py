@@ -75,7 +75,7 @@ def perform_adf_test(residuals, significance_level, maxlag=None):
         print(f"The residuals are stationary (reject null hypothesis) "
               f"at the {significance_level * 100}% significance level.")
     else:
-        print(f"The residuals are not stationary (accept null hypothesis) "
+        print(f"The residuals are not stationary (fail to reject null hypothesis) "
               f"at the {significance_level * 100}% significance level.")
     return adf_test
 
