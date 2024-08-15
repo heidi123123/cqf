@@ -132,7 +132,7 @@ def ou_likelihood(params, residuals, dt):
 
 def estimate_ou_params(residuals, dt=1):  # dt = 1: daily prices, so usually time increment dt = 1
     """Estimate Ornstein-Uhlenbeck process parameters using maximum likelihood estimation.
-    The OU process is given as: d(residuals)_t = -theta (residuals_t-mu_e) dt + sigma_ou dX_t"""
+    The OU process is given as: d(residuals)_t = -theta (residuals_t-mu_e) dt + sigma_ou dW_t"""
     residuals = np.array(residuals)
     initial_params = [0.1, np.mean(residuals), np.std(residuals)]  # [theta0, mu_ou0, sigma_ou0]
     # we minimize negative log-likelihood, which is equivalent to using maximum likelihood estimator (MLE)
