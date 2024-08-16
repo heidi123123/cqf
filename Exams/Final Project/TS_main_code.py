@@ -125,7 +125,7 @@ def ou_likelihood(params, residuals, dt):
     for t in range(1, len(residuals)):
         mean = residuals[t-1] + theta * (mu_e - residuals[t-1]) * dt
         variance = sigma_ou**2 * dt
-        # increment the log likelihood (=log probability density) with mean and variance of the next residual
+        # increment the log-likelihood by normal log-pdf of the next residual using mean and variance
         likelihood += norm.logpdf(residuals[t], loc=mean, scale=np.sqrt(variance))
     return -likelihood
 
