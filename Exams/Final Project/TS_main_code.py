@@ -13,7 +13,7 @@ from TS_backtesting import Portfolio, backtest_strategy_for_z_values
 from TS_plots import plot_assets_and_residuals, plot_positions, plot_asset_prices_and_residuals, plot_pnl_against_index
 
 
-def download_data(ticker, start_date="2014-01-01"):
+def download_data(ticker, start_date="2019-01-01"):
     """Download ticker data from yfinance library."""
     df = yf.download(ticker, start=start_date)
     df.dropna(inplace=True)
@@ -64,7 +64,9 @@ def least_squares_regression(y, X):
 def perform_adf_test(residuals, significance_level, maxlag=None):
     """Perform the Augmented Dickey-Fuller (ADF) test to check for the presence of unit root in a time series.
     H0: time series has a unit root (i.e. non-stationary)"""
-    adf_test = adfuller(residuals, maxlag=maxlag)
+    adf_test = adfuller(residuals, maxlag=maxlag, autolag=None)
+    # autolag=None will set lag nbr to maxlag (no lag optimization) if maxlag is not None
+    # if maxlag and autolag are both None, then lag nbr will be optimized using AIC
     adf_statistic, p_value, lags = adf_test[0], adf_test[1], adf_test[2]
 
     print(f"ADF Statistic: {adf_statistic:.4f}")
@@ -81,7 +83,7 @@ def perform_adf_test(residuals, significance_level, maxlag=None):
 
 
 def perform_engle_granger_step1(ticker1, ticker2, index_ticker, train_data, test_data,
-                                plotting, significance_level):
+                                plotting, significance_level, maxlag):
     """Step1 of the Engle-Granger procedure."""
 
     # OLS regression to obtain regression coefficients beta & residuals
@@ -95,7 +97,7 @@ def perform_engle_granger_step1(ticker1, ticker2, index_ticker, train_data, test
         plot_assets_and_residuals(train_data, test_data, ticker1, ticker2, index_ticker)
 
     # perform ADF test
-    adf_test_result = perform_adf_test(train_data['residuals'], significance_level)
+    adf_test_result = perform_adf_test(train_data['residuals'], significance_level, maxlag)
     return train_data, test_data, beta, adf_test_result
 
 
@@ -149,7 +151,8 @@ def get_half_life(theta, dt=1):
 
 
 def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
-                          plotting=False, start_date="2014-01-01", significance_level=0.05):
+                          plotting=False, start_date="2019-01-01",
+                          significance_level=0.05, maxlag=None):
     """Analyze cointegration between two assets ticker1 & ticker2 after start_date <YYYY-MM-DD>."""
     print(f"-" * 100)
     print(f"Analyzing cointegration between {ticker1} and {ticker2}...")
@@ -164,7 +167,7 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
     # Engle-Granger procedure - Step 1
     train_data, test_data, beta, adf_test_result = perform_engle_granger_step1(ticker1, ticker2, index_ticker,
                                                                                train_data, test_data, plotting,
-                                                                               significance_level)
+                                                                               significance_level, maxlag)
     # Engle-Granger procedure - Step 2: ECM
     ecm_results = fit_ecm(train_data, "residuals", ticker1, ticker2)
     print(f"Equilibrium mean-reversion coefficient: {ecm_results['coefficients'][-1]:2f}")
@@ -196,18 +199,12 @@ ticker1 = "KO"
 ticker2 = "PEP"
 train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
                                                                                              significance_level=0.05,
-                                                                                             start_date="2016-01-01")
+                                                                                             start_date="2020-01-01",
+                                                                                             maxlag=1)
 analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
 
-"""# Roche and Novartis
-ticker1 = "ROG.SW"
-ticker2 = "NOVN.SW"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2, index_ticker="^SSMI",
-                                                                                             plotting=True, start_date="2022-01-01")
-analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1],  index_ticker="^SSMI")
-
-# Marriott and InterContinental Hotels Group
-ticker1 = "MAR"
+"""Marriott and InterContinental Hotels Group
+ticker# 1 = "MAR"
 ticker2 = "IHG"
 train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
 
@@ -219,14 +216,13 @@ train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_c
 # Gold commodity and Gold futures
 ticker1 = "GLD"
 ticker2 = "GC=F"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)"""
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
 
 
 # Apple and Microsoft - starting analysis 2019
 ticker1 = "AAPL"
 ticker2 = "MSFT"
 train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                             start_date="2019-01-01",
                                                                                              plotting=True)
 
 # Apple and Microsoft - starting analysis 2022
@@ -234,3 +230,20 @@ train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_c
                                                                                              start_date="2021-01-01",
                                                                                              plotting=True)
 analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
+
+# Lonza and Givaudan
+ticker1 = "LONN.SW"
+ticker2 = "GIVN.SW"
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                             index_ticker="^SSMI",
+                                                                                             plotting=True,
+                                                                                             start_date="2017-01-01")
+"""
+# Nestlé and Roche
+ticker1 = "NESN.SW"
+ticker2 = "ROG.SW"
+train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                             index_ticker="^SSMI",
+                                                                                             plotting=True,
+                                                                                             start_date="2017-01-01")
+analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1],  index_ticker="^SSMI")
