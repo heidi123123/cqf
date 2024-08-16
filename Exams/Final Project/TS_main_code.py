@@ -80,7 +80,8 @@ def perform_adf_test(residuals, significance_level, maxlag=None):
     return adf_test
 
 
-def perform_engle_granger_step1(ticker1, ticker2, index_ticker, train_data, test_data, plotting, significance_level):
+def perform_engle_granger_step1(ticker1, ticker2, index_ticker, train_data, test_data,
+                                plotting, significance_level):
     """Step1 of the Engle-Granger procedure."""
 
     # OLS regression to obtain regression coefficients beta & residuals
@@ -142,9 +143,7 @@ def estimate_ou_params(residuals, dt=1):  # dt = 1: daily prices, so usually tim
 
 
 def get_half_life(theta, dt=1):
-    """
-    Calculate the half-life of an Ornstein-Uhlenbeck process.
-    """
+    """Calculate the half-life of an Ornstein-Uhlenbeck process."""
     half_life = np.log(2) / (theta * dt)
     return half_life
 
@@ -178,7 +177,8 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
     return train_data, test_data, beta, adf_test_result, ecm_results, ou_params
 
 
-def analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, hedge_ratio, index_ticker="SPY",
+def analyze_trading_strategy(train_data, test_data, ticker1, ticker2,
+                             ou_params, hedge_ratio, index_ticker="SPY",
                              test_z_values=np.arange(0.3, 1.5, 0.1)):
     # Backtesting: in-sample performance evaluation on train_data to find best z-value
     train_results, z_best = backtest_strategy_for_z_values(train_data, ticker1, ticker2, ou_params, hedge_ratio, test_z_values)
