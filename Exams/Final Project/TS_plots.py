@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 
 def plot_assets_and_residuals(train_data, test_data, ticker1, ticker2, index_ticker="SPY", split_ratio=0.7):
@@ -145,19 +146,26 @@ def plot_asset_prices_and_residuals(portfolio):
     ax1.plot(dates, portfolio.data[portfolio.ticker2], label=f"{portfolio.ticker2} Price", color="orange")
     ax1.set_xlabel("Date")
     ax1.set_ylabel("Asset Price")
-    ax1.legend()
+    ax1.legend(loc="upper left")
     ax1.grid(True)
 
     # secondary y-axis: residuals
+    residuals = pd.Series(portfolio.data['residuals'], index=dates)
     ax2 = ax1.twinx()
-    ax2.plot(dates, portfolio.data['residuals'], label="Residuals", color="green")
+    ax2.plot(dates, residuals, label="Residuals", color="green")
     ax2.axhline(portfolio.mu_e, color="black", linestyle="--", label=r"$\mu_e$")
     upper_bound, lower_bound = portfolio.calculate_optimal_bounds()
     sigma_band_label = r"$\mu_e \pm " + str(round(portfolio.z, 1)) + r" \times \sigma_{eq}$"
     ax2.axhline(upper_bound, color="grey", linestyle="--", label=sigma_band_label)
     ax2.axhline(lower_bound, color="grey", linestyle="--")
     ax2.set_ylabel("Residuals")
-    ax2.legend()
+
+    # mark entry and exit signals based on changes in positions
+    positions_ticker1 = portfolio.positions[portfolio.ticker1]
+    position_changes = positions_ticker1.diff().fillna(0)
+    signals = position_changes != 0  # track where a position is changed
+    ax2.plot(dates[signals], residuals[signals], "ro", label="Position Change (Entry/Exit)")
+    ax2.legend(loc="upper right")
 
     plt.title(f"Asset Prices and Residuals with Thresholds for {portfolio.ticker1} and {portfolio.ticker2}")
     plt.show()
