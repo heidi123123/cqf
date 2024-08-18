@@ -139,23 +139,26 @@ class RiskMetrics:
                 'ES': self.calculate_expected_shortfall()}
 
 
-def find_best_pnl(pnl_table):
+def find_best_pnl(pnl_table, pnl_key):
     """In a pnl_table dataframe, find the highest PnL value and its corresponding Z"""
-    best_row = pnl_table.loc[pnl_table['PnL'].idxmax()]
-    return best_row['Z'], best_row['PnL']
+    best_row = pnl_table.loc[pnl_table[pnl_key].idxmax()]
+    return best_row['Z'], best_row[pnl_key]
 
 
-def backtest_strategy_for_z_values(data, ticker1, ticker2, ou_params, hedge_ratio, z_values, plotting=False):
+def backtest_strategy_for_z_values(data, ticker1, ticker2, ou_params, hedge_ratio, z_values,
+                                   plotting=False, maximize_realized=True):
     """Test Z values in range of z_values (iterable) and calculate Pnl for every Z value."""
     results = []
     for z in z_values:
         portfolio = Portfolio(data, ticker1, ticker2, ou_params, hedge_ratio, z)
-        pnl = portfolio.get_cumulative_pnl()
+        realized_pnl = portfolio.get_cumulative_pnl()
+        total_pnl = portfolio.get_total_pnl()
         risk_metrics = RiskMetrics(portfolio.returns)
         metrics = risk_metrics.run_full_analysis()
-        results.append({'Z': z, 'PnL': pnl, **metrics})
+        results.append({'Z': z, 'Realized PnL': realized_pnl, 'Total PnL (incl. Unrealized)': total_pnl, **metrics})
     results_df = pd.DataFrame(results)
-    best_z, best_pnl = find_best_pnl(results_df)
+    pnl_key = "Realized PnL" if maximize_realized else "Total PnL (incl. Unrealized)"
+    best_z, best_pnl = find_best_pnl(results_df, pnl_key)
     if plotting:
-        plot_pnl_table(results_df, best_z, best_pnl)
+        plot_pnl_table(results_df, best_z, best_pnl, pnl_key)
     return results_df, best_z
