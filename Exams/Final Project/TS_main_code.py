@@ -106,10 +106,10 @@ def get_differences(data, columns):
     return data[columns].diff().dropna()
 
 
-def fit_ecm(data, residuals_column, target_column, independent_column):
+def fit_ecm(data, target_column, independent_column, lag_size=1):
     """Step2 of the Engle-Granger procedure: fit the Equilibrium Correction Model (ECM)."""
     data_delta = get_differences(data, [target_column, independent_column])
-    data_delta['lagged_residuals'] = data[residuals_column].shift(1)  # lag the residuals
+    data_delta['lagged_residuals'] = data['residuals'].shift(lag_size)  # lag the residuals
     data_delta = data_delta.dropna()
 
     # OLS to obtain ECM coefficients & residuals
@@ -169,7 +169,8 @@ def analyze_cointegration(ticker1, ticker2, index_ticker="SPY",
                                                                                train_data, test_data, plotting,
                                                                                significance_level, maxlag)
     # Engle-Granger procedure - Step 2: ECM
-    ecm_results = fit_ecm(train_data, "residuals", ticker1, ticker2)
+    lag_size = adf_test_result[2]
+    ecm_results = fit_ecm(train_data, ticker1, ticker2, lag_size)
     print(f"Equilibrium mean-reversion coefficient: {ecm_results['coefficients'][-1]:2f}")
 
     # Engle-Granger procedure - Step 3 (inofficial): fit OU process to mean-reverting residuals
