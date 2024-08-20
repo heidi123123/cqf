@@ -15,7 +15,7 @@ from TS_plots import plot_assets_and_residuals, plot_positions, plot_asset_price
 
 def download_data(ticker, start_date="2019-01-01"):
     """Download ticker data from yfinance library."""
-    df = yf.download(ticker, start=start_date)
+    df = yf.download(ticker, start=start_date, end="2024-08-19")
     df.dropna(inplace=True)
     return df
 
