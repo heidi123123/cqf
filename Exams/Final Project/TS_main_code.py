@@ -194,57 +194,58 @@ def analyze_trading_strategy(train_data, test_data, ticker1, ticker2,
     plot_pnl_against_index(test_portfolio, index_ticker)
 
 
-# Example usages
-# Coca-Cola and Pepsi
-ticker1 = "KO"
-ticker2 = "PEP"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                             significance_level=0.05,
-                                                                                             start_date="2020-01-01",
-                                                                                             maxlag=1)
-analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
+if __name__ == "__main__":
+    # Example usages
+    # Coca-Cola and Pepsi
+    ticker1 = "KO"
+    ticker2 = "PEP"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                                 significance_level=0.05,
+                                                                                                 start_date="2020-01-01",
+                                                                                                 maxlag=1)
+    analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
 
-"""Marriott and InterContinental Hotels Group
-ticker# 1 = "MAR"
-ticker2 = "IHG"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
-
-# Exxon Mobil and Chevron
-ticker1 = "XOM"
-ticker2 = "CVX"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
-
-# Gold commodity and Gold futures
-ticker1 = "GLD"
-ticker2 = "GC=F"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
-
-
-# Apple and Microsoft - starting analysis 2019
-ticker1 = "AAPL"
-ticker2 = "MSFT"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                             plotting=True)
-
-# Apple and Microsoft - starting analysis 2022
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                             start_date="2021-01-01",
-                                                                                             plotting=True)
-analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
-
-# Lonza and Givaudan
-ticker1 = "LONN.SW"
-ticker2 = "GIVN.SW"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                             index_ticker="^SSMI",
-                                                                                             plotting=True,
-                                                                                             start_date="2017-01-01")
-"""
-# Nestlé and Roche
-ticker1 = "NESN.SW"
-ticker2 = "ROG.SW"
-train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                             index_ticker="^SSMI",
-                                                                                             plotting=True,
-                                                                                             start_date="2017-01-01")
-analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1],  index_ticker="^SSMI")
+    """Marriott and InterContinental Hotels Group
+    ticker# 1 = "MAR"
+    ticker2 = "IHG"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
+    
+    # Exxon Mobil and Chevron
+    ticker1 = "XOM"
+    ticker2 = "CVX"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
+    
+    # Gold commodity and Gold futures
+    ticker1 = "GLD"
+    ticker2 = "GC=F"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
+    
+    
+    # Apple and Microsoft - starting analysis 2019
+    ticker1 = "AAPL"
+    ticker2 = "MSFT"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                                 plotting=True)
+    
+    # Apple and Microsoft - starting analysis 2022
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                                 start_date="2021-01-01",
+                                                                                                 plotting=True)
+    analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
+    
+    # Lonza and Givaudan
+    ticker1 = "LONN.SW"
+    ticker2 = "GIVN.SW"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                                 index_ticker="^SSMI",
+                                                                                                 plotting=True,
+                                                                                                 start_date="2017-01-01")
+    """
+    # Nestlé and Roche
+    ticker1 = "NESN.SW"
+    ticker2 = "ROG.SW"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
+                                                                                                 index_ticker="^SSMI",
+                                                                                                 plotting=True,
+                                                                                                 start_date="2017-01-01")
+    analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1],  index_ticker="^SSMI")
