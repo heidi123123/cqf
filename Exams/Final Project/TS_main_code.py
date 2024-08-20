@@ -199,53 +199,67 @@ if __name__ == "__main__":
     # Coca-Cola and Pepsi
     ticker1 = "KO"
     ticker2 = "PEP"
-    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                                 significance_level=0.05,
-                                                                                                 start_date="2020-01-01",
-                                                                                                 maxlag=1)
+    start_date = "2020-01-01"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker1, ticker2, start_date=start_date, maxlag=1)
     analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
+    # Role reversal
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker2, ticker1, start_date=start_date, maxlag=1)
+    analyze_trading_strategy(train_data, test_data, ticker2, ticker1, ou_params, beta[1])
 
-    """Marriott and InterContinental Hotels Group
-    ticker# 1 = "MAR"
-    ticker2 = "IHG"
-    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
-    
-    # Exxon Mobil and Chevron
-    ticker1 = "XOM"
-    ticker2 = "CVX"
-    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
-    
-    # Gold commodity and Gold futures
-    ticker1 = "GLD"
-    ticker2 = "GC=F"
-    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2)
-    
-    
-    # Apple and Microsoft - starting analysis 2019
+    # Apple and Microsoft --> not cointegrated!
     ticker1 = "AAPL"
     ticker2 = "MSFT"
-    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                                 plotting=True)
-    
-    # Apple and Microsoft - starting analysis 2022
-    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                                 start_date="2021-01-01",
-                                                                                                 plotting=True)
+    start_date = "2021-01-01"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker1, ticker2, start_date=start_date)
+
+    # Google and Amazon
+    ticker1 = "GOOGL"
+    ticker2 = "AMZN"
+    start_date = "2021-01-01"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker1, ticker2, start_date=start_date)
     analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
-    
-    # Lonza and Givaudan
-    ticker1 = "LONN.SW"
-    ticker2 = "GIVN.SW"
-    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                                 index_ticker="^SSMI",
-                                                                                                 plotting=True,
-                                                                                                 start_date="2017-01-01")
-    """
+    # Role reversal
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker2, ticker1, start_date=start_date)
+    analyze_trading_strategy(train_data, test_data, ticker2, ticker1, ou_params, beta[1])
+
     # Nestlé and Roche
     ticker1 = "NESN.SW"
     ticker2 = "ROG.SW"
-    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(ticker1, ticker2,
-                                                                                                 index_ticker="^SSMI",
-                                                                                                 plotting=True,
-                                                                                                 start_date="2017-01-01")
-    analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1],  index_ticker="^SSMI")
+    start_date = "2017-01-01"
+    index_ticker = "^SSMI"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker1, ticker2, index_ticker=index_ticker, start_date=start_date)
+    analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1],
+                             index_ticker=index_ticker)
+    # Role reversal
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker2, ticker1, index_ticker=index_ticker, start_date=start_date)
+    analyze_trading_strategy(train_data, test_data, ticker2, ticker1, ou_params, beta[1],
+                             index_ticker=index_ticker)
+
+    # Exxon Mobil and Chevron --> not cointegrated!
+    ticker1 = "XOM"
+    ticker2 = "CVX"
+    start_date = "2018-01-01"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker1, ticker2, start_date=start_date)
+
+    # Gold commodity and Gold futures --> not cointegrated, but also suitable for pairs trading!
+    ticker1 = "GLD"
+    ticker2 = "GC=F"
+    start_date = "2019-01-01"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker1, ticker2)
+
+    # Counter-example --> not cointegrated, not suitable for pairs trading
+    ticker1 = "AMZN"
+    ticker2 = "BYND"
+    start_date = "2019-01-01"
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker1, ticker2, start_date=start_date)
+    analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
