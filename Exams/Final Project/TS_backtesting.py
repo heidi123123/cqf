@@ -22,9 +22,9 @@ class Portfolio:
     def calculate_optimal_bounds(self):
         """Calculate the upper and lower bounds for trading, CQF FP Workshop 2, sl. 15."""
         sigma_eq = self.sigma_ou / np.sqrt(2 * self.theta)
-        upper_bound = self.mu_e + self.z * sigma_eq
-        lower_bound = self.mu_e - self.z * sigma_eq
-        return upper_bound, lower_bound
+        bound1 = self.mu_e + self.z * sigma_eq
+        bound2 = self.mu_e - self.z * sigma_eq
+        return tuple(sorted([bound1, bound2], reverse=True))  # return upper bound first, then lower bound
 
     def enter_position(self, row, position_ticker1, position_ticker2):
         """Enter a position based on the current market conditions."""
