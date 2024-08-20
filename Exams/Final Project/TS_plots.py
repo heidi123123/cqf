@@ -103,18 +103,16 @@ def plot_ou_process_and_residuals(data, theta, mu_e, sigma_ou):
 def plot_pnl_table(pnl_table, best_z, best_pnl, pnl_key):
     """Plot the PnL values achieved for different Z-values. Mark the best Z-value with a star."""
     plt.figure(figsize=(10, 6))
-    plt.plot(pnl_table['Z'], pnl_table[pnl_key], marker="o", linestyle="-", color="b", label="PnL vs Z")
+    plt.plot(pnl_table['Z'], pnl_table[pnl_key], marker="o", linestyle="-", color="b", label=f"{pnl_key} vs Z")
 
     # Highlight the best PnL point with a star
     plt.scatter(best_z, best_pnl, color='r', marker="*", s=100, zorder=5,
-                label=f"Best PnL: {best_pnl:.2f} at Z={best_z:.2f}")
-
-    # Add text annotation to best PnL
-    plt.text(best_z, best_pnl, f"  Z={best_z:.2f}\n  PnL={best_pnl:.2f}", color="r", bbox=dict(facecolor="white"))
+                label=f"Best {pnl_key}: {best_pnl:.2f} at Z={best_z:.2f}")
 
     plt.title(f"{pnl_key} vs Z")
     plt.xlabel("Z")
     plt.ylabel(f"{pnl_key}")
+    plt.legend()
     plt.grid(True)
     plt.show()
 
