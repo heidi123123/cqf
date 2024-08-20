@@ -110,7 +110,7 @@ def plot_pnl_table(pnl_table, best_z, best_pnl, pnl_key):
                 label=f"Best PnL: {best_pnl:.2f} at Z={best_z:.2f}")
 
     # Add text annotation to best PnL
-    plt.text(best_z, best_pnl, f"  Z={best_z:.1f}\n  PnL={best_pnl:.1f}", color="r", bbox=dict(facecolor="white"))
+    plt.text(best_z, best_pnl, f"  Z={best_z:.2f}\n  PnL={best_pnl:.2f}", color="r", bbox=dict(facecolor="white"))
 
     plt.title(f"{pnl_key} vs Z")
     plt.xlabel("Z")
@@ -155,7 +155,7 @@ def plot_asset_prices_and_residuals(portfolio):
     ax2.plot(dates, residuals, label="Residuals", color="green")
     ax2.axhline(portfolio.mu_e, color="black", linestyle="--", label=r"$\mu_e$")
     upper_bound, lower_bound = portfolio.calculate_optimal_bounds()
-    sigma_band_label = r"$\mu_e \pm " + str(round(portfolio.z, 1)) + r" \times \sigma_{eq}$"
+    sigma_band_label = r"$\mu_e \pm " + str(round(portfolio.z, 2)) + r" \times \sigma_{eq}$"
     ax2.axhline(upper_bound, color="grey", linestyle="--", label=sigma_band_label)
     ax2.axhline(lower_bound, color="grey", linestyle="--")
     ax2.set_ylabel("Residuals")
