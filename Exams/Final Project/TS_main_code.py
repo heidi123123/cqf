@@ -255,6 +255,11 @@ if __name__ == "__main__":
     start_date = "2019-01-01"
     train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
         ticker1, ticker2)
+    analyze_trading_strategy(train_data, test_data, ticker1, ticker2, ou_params, beta[1])
+    # Role reversal
+    train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
+        ticker2, ticker1, index_ticker=index_ticker, start_date=start_date)
+    analyze_trading_strategy(train_data, test_data, ticker2, ticker1, ou_params, beta[1])
 
     # Counter-example --> not cointegrated, not suitable for pairs trading
     ticker1 = "AMZN"
