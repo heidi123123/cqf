@@ -62,7 +62,7 @@ def least_squares_regression(y, X):
 
 
 def perform_adf_test(residuals, significance_level, maxlag=None):
-    """Perform the Augmented Dickey-Fuller (ADF) test to check for the presence of unit root in a time series.
+    """Perform the Augmented Dickey-Fuller (ADF) test to check for the presence of a unit root in a time series.
     H0: time series has a unit root (i.e. non-stationary)"""
     adf_test = adfuller(residuals, maxlag=maxlag, autolag=None)
     # autolag=None will set lag nbr to maxlag (no lag optimization) if maxlag is not None
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     # Nestlé and Roche
     ticker1 = "NESN.SW"
     ticker2 = "ROG.SW"
-    start_date = "2017-01-01"
+    start_date = "2019-01-01"
     index_ticker = "^SSMI"
     train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
         ticker1, ticker2, index_ticker=index_ticker, start_date=start_date)
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     # Exxon Mobil and Chevron --> not cointegrated!
     ticker1 = "XOM"
     ticker2 = "CVX"
-    start_date = "2018-01-01"
+    start_date = "2019-01-01"
     train_data, test_data, beta, adf_test_result, ecm_results, ou_params = analyze_cointegration(
         ticker1, ticker2, start_date=start_date)
 
